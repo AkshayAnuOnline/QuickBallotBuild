@@ -1,1 +1,0 @@
-"use strict";const n=require("electron");n.contextBridge.exposeInMainWorld("electronAPI",{invoke:(e,...r)=>n.ipcRenderer.invoke(e,...r),on:(e,r)=>n.ipcRenderer.on(e,r),send:(e,...r)=>n.ipcRenderer.send(e,...r),getVersion:()=>process.versions.electron,platform:process.platform});

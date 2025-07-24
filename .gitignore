@@ -1,0 +1,5 @@
+node_modules/
+release/
+dist-electron/
+quickballot.db
+*.db
