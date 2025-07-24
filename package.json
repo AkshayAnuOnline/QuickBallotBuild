@@ -1,0 +1,106 @@
+{
+  "name": "quickballot",
+  "version": "1.0.0",
+  "description": "Offline Election Management System",
+  "main": "dist-electron/main.js",
+  "homepage": "./",
+  "build": {
+    "appId": "com.quickballot.app",
+    "productName": "QuickBallot",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "node_modules/**/*"
+    ],
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["universal"] }
+      ],
+      "icon": "assets/icon.icns"
+    },
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64", "arm64"] }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "linux": {
+      "target": [
+        { "target": "AppImage", "arch": ["x64", "arm64"] }
+      ],
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "electron:dev": "vite --mode development",
+    "electron:build": "npm run build && electron-builder",
+    "electron:preview": "npm run build && electron .",
+    "clean:release": "find release -type f ! \\( -name '*.dmg' -o -name '*.exe' -o -name '*.AppImage' \\) -delete && find release -type d -name 'mac-*' -prune -exec rm -rf {} +"
+  },
+  "keywords": [
+    "election",
+    "voting",
+    "offline",
+    "electron"
+  ],
+  "author": "QuickBallot Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^24.0.13",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@types/uuid": "^10.0.0",
+    "@vitejs/plugin-react": "^4.6.0",
+    "concurrently": "^9.2.0",
+    "cross-env": "^7.0.3",
+    "electron": "^27.3.11",
+    "electron-builder": "^26.0.12",
+    "electron-devtools-installer": "^4.0.0",
+    "electron-rebuild": "^3.2.9",
+    "electronmon": "^2.0.3",
+    "rollup-plugin-copy": "^3.5.0",
+    "typescript": "^5.8.3",
+    "vite": "^5.4.19",
+    "vite-plugin-electron": "^0.29.0",
+    "wait-on": "^8.0.3"
+  },
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.8.2",
+    "@zxing/browser": "^0.1.5",
+    "@zxing/library": "^0.21.3",
+    "bcryptjs": "^3.0.2",
+    "better-sqlite3": "^12.2.0",
+    "bootstrap": "^5.3.7",
+    "chart.js": "^4.5.0",
+    "emoji-picker-element": "^1.26.3",
+    "jspdf": "^3.0.1",
+    "jspdf-autotable": "^5.0.2",
+    "material-icons": "^1.13.14",
+    "mermaid": "^11.9.0",
+    "mermaid-graph": "^1.0.9",
+    "qrcode": "^1.5.4",
+    "react": "^18.3.1",
+    "react-bootstrap": "^2.10.10",
+    "react-chartjs-2": "^5.3.0",
+    "react-dom": "^18.3.1",
+    "react-icons": "^5.5.0",
+    "react-mermaid2": "^0.1.4",
+    "react-redux": "^9.2.0",
+    "sass": "^1.89.2",
+    "twemoji": "^14.0.2",
+    "uuid": "^9.0.1",
+    "xlsx": "^0.18.5"
+  }
+}

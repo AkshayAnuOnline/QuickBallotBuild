@@ -1,0 +1,179 @@
+PROMPT FOR LLM RESEARCH & ANALYSIS
+==================================
+
+Below is the full workflow and navigation for the QuickBallot app.
+
+QuickBallot is an offline election management app designed for schools and other organizations. Our target audience includes educational institutions, clubs, societies, and similar groups that need to conduct secure, auditable, and user-friendly elections. The app should be simple and intuitive for non-technical users, but also provide all the features that these organizations may require for real-world elections.
+
+**Your task:**
+- Analyze the workflow and app structure below, considering real-world use cases of elections in schools and organizations (especially those resembling Indian election procedures).
+- Identify areas where the app flow could be made simpler or more intuitive for admins and voters.
+- Suggest any features or improvements that would make the app more useful or easier to use for our audience.
+- Point out any steps or flows that seem unnecessarily complex or confusing.
+- Recommend additions or changes to better match the needs of Indian-style elections (e.g., nomination, scrutiny, ballot secrecy, result publication, etc.).
+- Use the detailed workflow below as your context for this analysis.
+
+---
+
+QuickBallot App Workflow and Navigation
+=====================================
+
+App Name: QuickBallot
+---------------------
+
+Description:
+------------
+QuickBallot is an offline-first, desktop-based election management application. It enables organizations to securely create, manage, and conduct elections, manage voters and candidates, generate voter slips, and view results. The app is designed for robust, hierarchical navigation and a modern, user-friendly experience. Its primary users are organization admins (who set up and run elections) and voters (who participate in elections).
+
+
+High-Level User Goals
+---------------------
+- Admins can create/manage organizations, elections, positions, candidates, and voters.
+- Admins can conduct secure, auditable elections with multiple voting types.
+- Voters can authenticate and cast votes easily and securely.
+- All results are exportable and sessions are auditable.
+
+
+Entity Hierarchy & Relationships
+-------------------------------
+
+  Organization
+    ├── Election(s)
+    │     ├── Position(s)
+    │     │     └── Candidate(s)
+    │     └── Session(s) (for reconducting)
+    └── Voter(s)
+
+- **Organization**: Top-level entity. Contains elections and voters.
+- **Election**: Belongs to an organization. Has positions, candidates, sessions, and results.
+- **Position**: Each election has one or more positions (e.g., President).
+- **Candidate**: Belongs to a position in an election.
+- **Voter**: Belongs to an organization. Can participate in elections.
+- **Session**: Each time an election is conducted or reconducted, a new session is created for auditability.
+
+
+App Routes and Windows
+----------------------
+(See previous sections for detailed route list)
+
+
+Detailed User Journeys
+----------------------
+
+1. **Creating an Organization**
+   - Admin clicks "Create New Organization" on Home.
+   - Fills in org name, logo, and password (with recovery phrase).
+   - Org appears on Home; admin logs in with password.
+
+2. **Creating an Election**
+   - From org page, admin clicks "Add Election".
+   - Enters election name, logo, positions, and (optionally) start/end time.
+   - At least one position is required.
+   - Election is created with status 'Not Started'.
+
+3. **Adding Candidates**
+   - For each position, admin adds candidates (name, symbol, photo).
+   - Each position must have at least one candidate to start voting.
+
+4. **Adding Voters**
+   - Admin adds voters to the organization (name, voter ID).
+   - Voters can be imported in bulk.
+   - For QR/VoterID elections, each voter must have a unique ID/QR.
+
+5. **Starting an Election**
+   - Admin selects election type (Direct, QR, VoterID).
+   - Selects positions to conduct (can be all or a subset).
+   - For Direct elections, admin must enter org password to start.
+   - Election status changes to 'In Progress'.
+   - A voting session is created (with a unique session ID).
+   - Voting window opens (Direct, QR, or VoterID based on type).
+
+6. **Voting Process**
+   - Voters authenticate (directly, by QR, or by voter ID).
+   - For each position, voter selects a candidate and submits their vote.
+   - Votes are saved with session ID and timestamp.
+   - After voting, a thank you screen is shown.
+
+7. **Ending an Election**
+   - Admin ends the election (password required for Direct type).
+   - Election status changes to 'Completed'.
+   - Results are available for viewing/export.
+
+8. **Reconducting an Election**
+   - Admin can reconduct an election, creating a new session.
+   - Previous results are preserved (sessions are separated in results).
+
+9. **Viewing Results**
+   - Results are grouped by session (each session = one round of voting).
+   - Results show vote counts per candidate per position.
+   - Results can be exported as PDF (with org/election branding).
+
+10. **Voter Slip Generation**
+    - Admin generates printable voter slips (with QR codes) for the org's latest election.
+    - Slips can be generated for all or selected voters.
+
+
+Roles and Responsibilities
+--------------------------
+- **Admin**: Can create/manage orgs, elections, positions, candidates, voters, and results. Controls all election procedures.
+- **Voter**: Can authenticate and vote in elections they are eligible for (based on org membership and election type).
+
+
+Election Types
+--------------
+- **Direct Election:**
+  - Voters are selected and authenticated directly in the voting window.
+  - No QR code or voter ID required.
+  - Suitable for simple, in-person voting.
+- **QR-based Election:**
+  - Each voter is assigned a unique QR code (via slip generator).
+  - Voters scan their QR code to authenticate and vote.
+  - Ensures only eligible voters can participate.
+- **Voter ID-based Election:**
+  - Each voter is assigned a unique voter ID.
+  - Voters enter their voter ID to authenticate and vote.
+  - Useful for controlled, identity-based voting.
+
+
+Election Procedures (Expanded)
+------------------------------
+- **Session Management:** Each time an election is started or reconducted, a new session is created. Results are grouped by session for auditability.
+- **Password Protection:** All sensitive actions (org access, election start/end, deletion) require password entry.
+- **Modals:** Used for password entry, adding/editing entities, confirmations, and error feedback.
+- **PDF Export:** Results and voter slips can be exported as branded PDFs.
+- **Strict Navigation:** All navigation is explicit and hierarchical (never browser history). Back buttons always go up the hierarchy.
+- **Offline-First:** All data is managed locally via Electron backend.
+
+
+Edge Cases & Error Handling
+--------------------------
+- **Not Found:** If an org or election is missing, a friendly message is shown and the user is auto-redirected up the hierarchy.
+- **Password Errors:** Incorrect password attempts show clear feedback.
+- **Deletion:** After deletion, users are redirected up the hierarchy and cannot access deleted entities.
+- **Session Integrity:** Voting and results are always tied to a session for auditability.
+
+
+UX Principles
+-------------
+- **Hierarchical Navigation:** Users always move up or down the entity hierarchy, never "back" in browser history.
+- **Immediate Feedback:** All actions (add, edit, delete, vote) provide instant feedback or confirmation.
+- **Consistency:** All windows and modals use consistent styling and layout.
+- **Accessibility:** Large buttons, clear labels, and keyboard navigation are supported.
+
+
+Known Pain Points / Areas for Improvement
+-----------------------------------------
+- Responsive layout for header/buttons on small screens.
+- Ensuring all "not found" and error states are handled gracefully.
+- Streamlining the process for adding many voters/candidates.
+- Improving the clarity of session/results history for admins.
+
+
+Example Scenarios / Use Cases
+-----------------------------
+- **School Election:** Admin creates a "School Council" org, adds students as voters, creates "President" and "Secretary" positions, adds candidates, and runs a QR-based election.
+- **Club Election:** Admin creates a "Chess Club" org, adds members as voters, creates a "Club President" position, and runs a direct election.
+- **Reconducting an Election:** After a disputed result, admin reconducts the election, and both sessions' results are available for audit.
+
+
+This document is designed to give an LLM or researcher maximum context for understanding, analyzing, and improving the QuickBallot app's workflow and user experience. 

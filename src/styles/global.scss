@@ -1,0 +1,479 @@
+// Import Google Fonts
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+// Color Variables
+:root {
+  --primary: #4f8cff;
+  --primary-hover: #3973e7;
+  --secondary: #7a7cff;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --dark: #111214;
+  --dark-light: #18191b;
+  --dark-lighter: #232427;
+  --light: #f8fafc;
+  --text-primary: #f5f6fa;
+  --text-secondary: #a3a6b1;
+  --text-muted: #44464a;
+  --border: #232427;
+  --border-light: #2d2e32;
+  --shadow: rgba(0, 0, 0, 0.7);
+  --shadow-light: rgba(0, 0, 0, 0.3);
+}
+
+// Global Styles
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background-color: var(--dark);
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+body {
+  background: var(--dark) !important;
+}
+
+// Typography
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.2;
+  margin-bottom: 0.5rem;
+}
+
+h1 { font-size: 2.25rem; }
+h2 { font-size: 1.875rem; }
+h3 { font-size: 1.5rem; }
+h4 { font-size: 1.125rem; }
+h5 { font-size: 1rem; }
+h6 { font-size: 0.875rem; }
+
+// Bootstrap Overrides for Dark Theme
+.container, .container-fluid {
+  background-color: var(--dark) !important;
+}
+
+// Override any potential gradient backgrounds
+.home-page, .container, .row, .col, [class*="col-"] {
+  background: var(--dark) !important;
+  background-image: none !important;
+}
+
+.card {
+  background-color: var(--dark-light) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
+}
+
+.card-body {
+  color: var(--text-primary) !important;
+}
+
+.row, .col, [class*="col-"] {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+// Override any Bootstrap utility classes that might add backgrounds
+.bg-primary, .bg-secondary, .bg-success, .bg-warning, .bg-danger, .bg-info, .bg-light, .bg-dark {
+  background-color: var(--dark) !important;
+  background-image: none !important;
+}
+
+// Ensure no gradients from Bootstrap
+[class*="bg-gradient"] {
+  background: var(--dark) !important;
+  background-image: none !important;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%) !important;
+  border: none !important;
+  color: var(--text-primary) !important;
+  font-weight: 600 !important;
+  border-radius: 12px !important;
+  padding: 12px 24px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+  }
+  
+  &:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: none !important;
+    background: linear-gradient(135deg, var(--primary-hover) 0%, var(--secondary) 100%) !important;
+    
+    &::before {
+      left: 100%;
+    }
+  }
+  
+  &:active {
+    transform: translateY(0) !important;
+  }
+}
+
+.badge {
+  &.bg-success {
+    background-color: var(--success) !important;
+  }
+  
+  &.bg-secondary {
+    background-color: var(--text-muted) !important;
+  }
+}
+
+// Utility Classes
+.text-primary { color: var(--primary) !important; }
+.text-secondary { color: var(--secondary) !important; }
+.text-success { color: var(--success) !important; }
+.text-warning { color: var(--warning) !important; }
+.text-danger { color: var(--danger) !important; }
+
+.bg-primary { background-color: var(--primary) !important; }
+.bg-secondary { background-color: var(--secondary) !important; }
+.bg-success { background-color: var(--success) !important; }
+.bg-warning { background-color: var(--warning) !important; }
+.bg-danger { background-color: var(--danger) !important; }
+
+// Transitions
+* {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+// Smooth animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(99, 102, 241, 0.6);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+// Scrollbar Styling
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--dark-light);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-light);
+} 
+
+.create-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.12rem !important;
+  font-size: 0.98rem !important;
+  font-weight: 600 !important;
+  padding: 9px 18px !important;
+  border-radius: 11px !important;
+  background: linear-gradient(90deg, #3550a3, #4f8cff, #7a7cff) !important;
+  background-size: 200% 100% !important;
+  background-position: 0% 50% !important;
+  color: #fff !important;
+  border: 1.2px solid var(--border) !important;
+  box-shadow: none !important;
+  letter-spacing: 0.01em !important;
+  transition: background-position 1.2s cubic-bezier(0.4, 0.0, 0.2, 1) !important;
+  margin-bottom: 0 !important;
+  outline: none !important;
+}
+
+.create-btn:hover, .create-btn:focus {
+  background-position: 100% 50% !important;
+  color: #fff !important;
+  border-color: var(--primary) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.create-btn .btn-icon {
+  font-size: 1.1rem !important;
+  display: flex !important;
+  align-items: center !important;
+  margin-right: 0.12rem !important;
+  font-weight: 600 !important;
+}
+
+.create-btn .btn-text {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+} 
+
+.add-org-input[type='datetime-local'] {
+  font-size: 0.97rem !important;
+}
+
+/* Calendar icon color for datetime-local (Webkit browsers) */
+.add-org-input[type='datetime-local']::-webkit-calendar-picker-indicator {
+  filter: invert(44%) sepia(98%) saturate(747%) hue-rotate(199deg) brightness(98%) contrast(101%);
+  /* This filter approximates #4f8cff */
+}
+
+.add-org-input[type='datetime-local']::-webkit-input-placeholder {
+  color: #a3a6b1;
+  opacity: 1;
+}
+
+.add-org-input[type='datetime-local']::placeholder {
+  color: #a3a6b1;
+  opacity: 1;
+} 
+
+// Modern dark checkbox style
+.dark-checkbox {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--primary);
+  background: #232427;
+  border: 2px solid #44464a;
+  border-radius: 6px;
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+  display: inline-block;
+  position: relative;
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &:checked {
+    background: var(--primary);
+    border-color: var(--primary);
+  }
+
+  &:checked::after {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 2px;
+    width: 6px;
+    height: 12px;
+    border: solid #fff;
+    border-width: 0 3px 3px 0;
+    border-radius: 1px;
+    transform: rotate(45deg);
+    display: block;
+  }
+
+  &::after {
+    content: '';
+    display: block;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 6px;
+    transition: box-shadow 0.2s;
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 2px var(--primary-hover);
+  }
+} 
+
+.election-action-btn, .election-action-btn * {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em !important;
+  line-height: 1.1 !important;
+  text-align: center !important;
+} 
+
+emoji-picker {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  --background: #18191b;
+  --border-radius: 14px;
+  --shadow: none;
+  --border: none;
+  --font-family: 'Poppins', sans-serif;
+  --color: #f5f6fa;
+  --accent-color: #4f8cff;
+  --indicator-color: #4f8cff;
+  --category-button-active-bg: #232427;
+  --category-button-hover-bg: #232427;
+  --search-input-bg: #232427;
+  --search-input-border: 1.5px solid #31334a;
+  --search-input-color: #f5f6fa;
+  --search-input-radius: 10px;
+  --search-input-padding: 0.7rem 1rem;
+  --search-input-font-size: 1rem;
+  --search-input-placeholder-color: #a3a6b1;
+  --emoji-size: 2rem;
+}
+emoji-picker .picker,
+emoji-picker .main,
+emoji-picker .categories,
+emoji-picker .category,
+emoji-picker .emojis {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+emoji-picker ::-webkit-scrollbar {
+  width: 8px;
+  background: #232427;
+}
+emoji-picker ::-webkit-scrollbar-thumb {
+  background: #31334a;
+  border-radius: 6px;
+} 
+
+// Modal Backdrop Overlay - Bootstrap Modal Components
+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  opacity: 1 !important;
+}
+
+.modal-backdrop.show {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  opacity: 1 !important;
+}
+
+// Custom modal backdrop for premium modals
+.add-org-modal-premium .modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+  opacity: 1 !important;
+}
+
+// Custom Modal Overlay - For custom modal implementations
+.modal.show.d-block {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+// Ensure custom modals have proper backdrop
+.modal.show.d-block::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1040;
+  pointer-events: auto;
+}
+
+// Ensure modal content is above the backdrop
+.modal.show.d-block .modal-dialog {
+  z-index: 1050;
+  position: relative;
+} 
+
+.qb-greeting { @extend h1; font-weight: 800; }
+.qb-subtitle { font-size: 1rem; color: var(--text-secondary); font-weight: 400; }
+.org-name { @extend h5; font-weight: 700; }
+.card-title { font-weight: 800; }
+.subtext, .label { font-size: 13px; color: var(--text-secondary); font-weight: 400; } 
+
+.help-modal-content {
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    margin: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+  }
+} 

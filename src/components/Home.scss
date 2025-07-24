@@ -1,0 +1,510 @@
+.home-page {
+  min-height: 100vh;
+  background: var(--dark) !important;
+  background-image: none !important;
+  padding: 3rem 0;
+  overflow-y: auto;
+  animation: fadeIn 0.8s ease-out;
+  margin: 0;
+  width: 100%;
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: none !important;
+    pointer-events: none;
+    z-index: 0;
+  }
+}
+
+.qb-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 0;
+  width: 100%;
+  margin-bottom: 1rem;
+  padding-top: 3.5rem;
+  padding-bottom: 2.5rem;
+  
+  .qb-wordmark {
+    width: 220px;
+    height: auto;
+    margin-bottom: 2.2rem;
+    opacity: 0.95;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .qb-greeting {
+    font-size: 3.1rem;
+    font-weight: 600;
+    color: #4f8cff;
+    letter-spacing: -0.5px;
+    margin-bottom: 1.2rem;
+    text-align: center;
+    line-height: 1.1;
+    background: none;
+    box-shadow: none;
+  }
+
+  .qb-subtitle {
+    font-size: 1.18rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+    text-align: center;
+    margin-bottom: 0;
+    letter-spacing: 0.01em;
+  }
+}
+
+@media (max-width: 600px) {
+  .qb-header {
+    padding-top: 1.2rem;
+    padding-bottom: 1.2rem;
+    .qb-wordmark {
+      margin-bottom: 1rem;
+      width: 150px;
+    }
+    .qb-greeting {
+      font-size: 2rem;
+      margin-bottom: 0.6rem;
+    }
+    .qb-subtitle {
+      font-size: 1rem;
+    }
+  }
+}
+
+// Remove .qb-header-card styles if present
+.qb-header-card { display: none !important; }
+
+.orgs-section {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.orgs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1.2rem;
+  margin-bottom: 2.2rem !important;
+}
+
+.orgs-header .create-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.12rem !important;
+  font-size: 0.98rem !important;
+  font-weight: 600 !important;
+  padding: 9px 18px !important;
+  border-radius: 11px !important;
+  background: linear-gradient(90deg, #3550a3, #4f8cff, #7a7cff) !important;
+  background-size: 200% 100% !important;
+  background-position: 0% 50% !important;
+  color: #fff !important;
+  border: 1.2px solid var(--border) !important;
+  box-shadow: none !important;
+  letter-spacing: 0.01em !important;
+  transition: background-position 1.2s cubic-bezier(0.4, 0.0, 0.2, 1) !important;
+  margin-bottom: 0 !important;
+  outline: none !important;
+}
+
+.orgs-header .create-btn .btn-icon {
+  font-size: 1.1rem !important;
+  display: flex !important;
+  align-items: center !important;
+  margin-right: 0.12rem !important;
+  font-weight: 600 !important;
+}
+
+.orgs-header .create-btn .btn-text {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+}
+
+.orgs-header .create-btn:hover, .orgs-header .create-btn:focus {
+  background-position: 100% 50% !important;
+  color: #fff !important;
+  border-color: var(--primary) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.orgs-header .btn-icon {
+  font-size: 1.7rem;
+  display: flex;
+  align-items: center;
+  margin-right: 0.5rem;
+}
+
+.orgs-header .btn-text {
+  display: flex;
+  align-items: center;
+}
+
+.orgs-header .card-title {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: var(--text-primary);
+  margin-bottom: 0;
+  margin-left: 0.5rem;
+  white-space: nowrap;
+  pointer-events: none;
+  }
+
+.orgs-page-title {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: var(--text-primary);
+  text-align: center;
+  margin-bottom: 2.2rem;
+  letter-spacing: -0.5px;
+}
+
+@media (max-width: 700px) {
+  .orgs-page-title {
+    font-size: 2rem;
+    margin-bottom: 1.2rem;
+  }
+}
+
+// Remove old welcome-card styles
+.welcome-card { display: none !important; }
+
+
+.organizations-card {
+  background: var(--dark);
+  border: 1.5px solid var(--border);
+  border-radius: 24px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.45), 0 1.5px 8px rgba(80,80,120,0.10);
+  animation: slideIn 1s ease-out 0.2s both;
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: none;
+    pointer-events: none;
+  }
+  
+  .card-title {
+    color: var(--text-primary);
+    font-weight: 700;
+    font-size: 2rem;
+    position: relative;
+    z-index: 1;
+  }
+  
+  .create-btn {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    border: none;
+    border-radius: 16px;
+    padding: 16px 32px;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    color: var(--text-primary);
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+    
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 32px rgba(99, 102, 241, 0.4);
+      background: linear-gradient(135deg, var(--primary-hover) 0%, var(--secondary) 100%);
+    }
+    
+    &:active {
+      transform: translateY(-1px);
+    }
+  }
+}
+
+.organizations-grid {
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: 2.2rem;
+  column-gap: 0;
+}
+
+.organizations-grid .org-card {
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  background: var(--dark);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35), 0 1.5px 8px rgba(80,80,120,0.08);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(6px);
+  padding: 1.7rem 1.2rem 1.2rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 0 !important;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  &:hover {
+    background: #232323;
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 20px 40px var(--shadow), 0 0 0 1.5px var(--primary);
+    border-color: var(--primary);
+    
+    &::before {
+      opacity: 1;
+    }
+  }
+
+  .org-logo {
+    margin-bottom: 1.1rem;
+    position: relative;
+    z-index: 1;
+    .material-icons {
+      font-size: 3.5rem;
+      color: var(--primary);
+      transition: all 0.3s ease;
+      filter: drop-shadow(0 2px 8px rgba(99, 102, 241, 0.3));
+    }
+  }
+
+  .org-name {
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.13rem;
+    margin-bottom: 1.1rem;
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    letter-spacing: 0.01em;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  }
+
+  .org-stats {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.7rem;
+    .election-count {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+      margin-bottom: 0;
+    }
+    .status-badge {
+      font-size: 0.8rem;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+  }
+}
+
+.organizations-grid > [class*='col-'] {
+  margin-bottom: 0 !important;
+}
+
+.organizations-card.card {
+  background: var(--dark-light) !important;
+  border: 1.5px solid var(--border) !important;
+  border-radius: 28px !important;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.7), 0 2px 12px rgba(80,80,120,0.12);
+  margin-top: 2.5rem;
+  margin-bottom: 2.5rem;
+  padding: 2.5rem 2.5rem 2rem 2.5rem;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+.organizations-card .card-body {
+  padding: 0;
+}
+
+.organizations-card .d-flex {
+  margin-bottom: 2.2rem !important;
+}
+
+.organizations-card .card-title {
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 2rem;
+  margin-bottom: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.organizations-card .create-btn {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  border: none;
+  border-radius: 16px;
+  padding: 16px 32px;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: filter 0.2s, box-shadow 0.2s;
+  color: var(--text-primary);
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+  
+  &:hover {
+    filter: brightness(1.15);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    background-position: initial;
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+  }
+  
+  &:active {
+    filter: brightness(1.08);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    background-position: initial;
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+  }
+}
+
+.organizations-card .organizations-grid {
+  margin-top: 1.5rem;
+}
+
+// Animations
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .home-page {
+    padding: 1rem 0;
+  }
+  
+  .welcome-card,
+  .organizations-card {
+    margin: 0 1rem;
+  }
+  
+
+  
+  .organizations-grid {
+    .org-card {
+      margin-bottom: 1rem;
+    }
+  }
+}
+
+@media (max-width: 576px) {
+  .welcome-card {
+    .logo-symbol {
+      width: 200px;
+      height: auto;
+    }
+    
+    .card-title {
+      font-size: 1.5rem;
+    }
+  }
+  
+  .organizations-card {
+    .create-btn {
+      width: 100%;
+      margin-top: 1rem;
+    }
+  }
+} 
+
+.orgs-header-actions {
+  gap: 2rem !important;
+} 
+
+.org-select-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.45rem;
+  height: 1.45rem;
+  border-radius: 0.5rem;
+  background: #202127;
+  border: 2.2px solid #35363a;
+  box-shadow: 0 2px 8px rgba(80,80,120,0.10);
+  outline: none;
+  cursor: pointer;
+  display: inline-block;
+  position: relative;
+  transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
+  margin-right: 0.2rem;
+}
+.org-select-checkbox:checked {
+  background: linear-gradient(90deg, #4f8cff 0%, #3550a3 100%);
+  border-color: #4f8cff;
+}
+.org-select-checkbox:focus {
+  border-color: #4f8cff;
+  box-shadow: 0 0 0 2px #4f8cff33;
+}
+.org-select-checkbox:checked::after {
+  content: '';
+  display: block;
+  position: absolute;
+  left: 0.38rem;
+  top: 0.18rem;
+  width: 0.32rem;
+  height: 0.7rem;
+  border: solid #fff;
+  border-width: 0 0.19rem 0.19rem 0;
+  border-radius: 0.1rem;
+  transform: rotate(45deg);
+} 
+
+.organizations-grid .org-card {
+  position: relative;
+}
+.org-select-checkbox {
+  position: absolute !important;
+  right: 1.1rem;
+  bottom: 1.1rem;
+  z-index: 3;
+  margin: 0;
+  box-shadow: 0 2px 8px rgba(80,80,120,0.10);
+  transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
+}
+.org-card:hover .org-select-checkbox,
+.org-select-checkbox:focus {
+  border-color: #4f8cff;
+  box-shadow: 0 0 0 2px #4f8cff33;
+} 

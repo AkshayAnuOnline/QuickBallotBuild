@@ -1,0 +1,296 @@
+.app {
+  min-height: 100vh;
+  background: #181a23 !important;
+}
+
+.welcome-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  animation: fadeInUp 0.8s ease-out;
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.app-logo {
+  .logo-symbol {
+    width: 120px;
+    height: 120px;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+    animation: pulse 2s infinite;
+  }
+}
+
+.card-title {
+  color: var(--dark);
+  font-weight: 700;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  -webkit-text-fill-color: unset !important;
+  background-clip: unset !important;
+}
+
+.card-text {
+  color: var(--gray-600);
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  border: none;
+  border-radius: 8px;
+  padding: 12px 32px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: none;
+  }
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+// Animations
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .welcome-card {
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+  
+  .app-logo .material-icons {
+    font-size: 3rem;
+  }
+  
+  .card-title {
+    font-size: 1.75rem;
+  }
+  
+  .card-text {
+    font-size: 1rem;
+  }
+} 
+
+// REMOVE or OVERRIDE the global .card-title style for org cards
+.card-title.org-name {
+  color: #fff !important;
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  -webkit-text-fill-color: unset !important;
+  background-clip: unset !important;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.18);
+} 
+
+.evm-row {
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 0.4rem 0.2rem;
+}
+.evm-candidate-photo, .evm-candidate-symbol {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  display: block;
+}
+@media (max-width: 600px) {
+  .evm-candidate-photo, .evm-candidate-symbol {
+    width: 56px;
+    height: 56px;
+  }
+  .evm-row {
+    min-height: 70px;
+  }
+} 
+
+.election-type-toggle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #181a23;
+  border-radius: 2rem;
+  padding: 3px 4px;
+  gap: 6px;
+  margin-bottom: 1.2rem;
+  width: 100%;
+  min-width: 0;
+  flex-wrap: wrap;
+  margin-left: auto;
+  margin-right: auto;
+  position: relative;
+  /* No border */
+}
+.election-type-toggle .toggle-btn {
+  font-family: inherit;
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: #4f8cff;
+  background: #181a23;
+  border: none;
+  border-radius: 1.7rem;
+  padding: 0.75rem 2.2rem;
+  transition:
+    background 0.16s cubic-bezier(0.4,0,0.2,1),
+    color 0.16s cubic-bezier(0.4,0,0.2,1),
+    transform 0.16s cubic-bezier(0.4,0,0.2,1);
+  outline: none;
+  box-shadow: none;
+  position: relative;
+  z-index: 1;
+  cursor: pointer;
+}
+.election-type-toggle .toggle-btn:not(.active):hover,
+.election-type-toggle .toggle-btn:not(.active):focus {
+  background: #232b45;
+  color: #7a7cff;
+  /* Remove transform pop effect */
+  /* transform: translateY(-1px) scale(1.03); */
+}
+.election-type-toggle .toggle-btn.active {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  color: #fff;
+  font-weight: 700;
+  /* Remove transform pop effect */
+  /* transform: scale(1.05); */
+  z-index: 2;
+} 
+
+// Responsive styles for election type toggle
+@media (max-width: 600px) {
+  .election-type-toggle {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100vw;
+    padding: 4px 2px;
+    gap: 8px;
+    border-radius: 1.2rem;
+    overflow-x: auto;
+  }
+  .election-type-toggle .toggle-btn {
+    font-size: 1rem;
+    padding: 0.7rem 0.5rem;
+    width: 100%;
+    min-width: 0;
+    border-radius: 1.2rem;
+    text-align: center;
+  }
+}
+
+.info-box {
+  background: rgba(79,140,255,0.08);
+  border: 1.5px solid #4f8cff44;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px #4f8cff11;
+  padding: 1.2rem 1.5rem 1.1rem 1.5rem;
+  color: #4f8cff;
+  margin: 0.7rem 0 1.2rem 0;
+  max-width: 600px;
+  font-size: 1.08rem;
+  font-weight: 500;
+  line-height: 1.7;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+.info-box-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1.13rem;
+  font-weight: 700;
+  color: #4f8cff;
+  margin-bottom: 0.1rem;
+}
+.info-icon {
+  font-size: 1.5rem;
+  color: #4f8cff;
+  opacity: 0.95;
+}
+.info-title {
+  font-size: 1.13rem;
+  font-weight: 700;
+  color: #4f8cff;
+}
+.info-description {
+  color: #b0c8ff;
+  font-size: 1.05rem;
+  font-weight: 500;
+  margin-bottom: 0.2rem;
+}
+.info-hotkeys {
+  color: #4f8cff;
+  font-size: 1.04rem;
+  font-weight: 600;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+}
+.hotkeys-label {
+  color: #7a7cff;
+  font-weight: 700;
+  margin-right: 0.4rem;
+}
+.hotkey {
+  background: #232b45;
+  color: #7a7cff;
+  border-radius: 7px;
+  padding: 2px 10px;
+  font-size: 1.01rem;
+  font-weight: 700;
+  margin: 0 0.13rem;
+  letter-spacing: 0.01em;
+  box-shadow: 0 1px 4px #4f8cff11;
+  border: 1.2px solid #4f8cff33;
+  display: inline-block;
+}
+.or {
+  color: #b0c8ff;
+  font-weight: 500;
+  margin: 0 0.13rem;
+}
+.hotkey-desc {
+  color: #b0c8ff;
+  font-weight: 500;
+  margin-left: 0.18rem;
+} 
+
+// Remove or override margin-top for organizations-card in election window columns
+.individual-election-page .organizations-card {
+  margin-top: 0 !important;
+} 
