@@ -95,7 +95,6 @@
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.8.2",
-    "@types/react-router-dom": "^5.3.3",
     "@zxing/browser": "^0.1.5",
     "@zxing/library": "^0.21.3",
     "bcryptjs": "^3.0.2",
