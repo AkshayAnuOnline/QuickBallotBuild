@@ -89,7 +89,7 @@
     "offline",
     "electron"
   ],
-  "author": "QuickBallot Team",
+  "author": "QuickBallot Team <info@quickballot.com>",
   "license": "MIT",
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
