@@ -37,45 +37,6 @@ interface ManageCandidatesProps {
   electionName?: string;
 }
 
-// Helper to load a PNG path (local or remote) as a data URL
-async function pngPathToDataUrl(path: string): Promise<string | null> {
-  let url = path;
-  if (typeof path === 'string' && path.startsWith('/openmoji/')) {
-    url = window.location.origin + path;
-  } else if (typeof path === 'string' && path.startsWith('openmoji/')) {
-    url = window.location.origin + '/' + path;
-  }
-  console.log('[OpenMoji PNG Loader] Trying to load:', url);
-  return new Promise((resolve) => {
-    const img = new window.Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = function() {
-      console.log('[OpenMoji PNG Loader] Loaded successfully:', url);
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0);
-          resolve(canvas.toDataURL('image/png'));
-        } else {
-          resolve(null);
-        }
-      } catch {
-        resolve(null);
-      }
-    };
-    img.onerror = function() {
-      console.warn('[OpenMoji PNG Loader] Failed to load:', url);
-      resolve(null);
-    };
-    img.src = url;
-  });
-}
-
-
-
 // Helper: Crop an image to a centered square and return a data URL
 async function cropImageToSquare(dataUrl: string, size: number = 256): Promise<string> {
   return new Promise((resolve) => {
@@ -280,54 +241,48 @@ const ManageCandidates: React.FC<ManageCandidatesProps> = ({ organization_id: pr
       const symbolDataUrlMap: Record<string, string> = {};
       // Pre-crop all candidate photos to square
       const photoDataUrlMap: Record<string, string> = {};
-      await Promise.all(candidates.map(async (candidate) => {
+      // Pre-crop all candidate photos to square
+      for (const candidate of candidates) {
         // Crop photo to square if present
         if (candidate.photo && /^data:image\//.test(candidate.photo)) {
           if (!photoDataUrlMap[candidate.photo]) {
-            photoDataUrlMap[candidate.photo] = await cropImageToSquare(candidate.photo, 256);
+            photoDataUrlMap[candidate.photo] = await cropImageToSquare(candidate.photo, 1024);
           }
         }
+      }
+      
+      // Process all candidate symbols
+      for (const candidate of candidates) {
         const sym = candidate.symbol;
-        if (typeof sym === 'string' && (sym.endsWith('.png') || sym.startsWith('/openmoji/'))) {
-          if (!symbolDataUrlMap[sym]) {
-            const dataUrl = await pngPathToDataUrl(sym);
-            if (dataUrl) symbolDataUrlMap[sym] = dataUrl;
-          }
-        }
-        // If symbol is SVG data URL, convert using CairoSVG
+        // Handle SVG data URLs by converting them to raster images
         if (typeof sym === 'string' && sym.startsWith('data:image/svg+xml')) {
           if (!symbolDataUrlMap[sym]) {
             try {
               // Try JPEG first
               let convertedDataUrl = await window.electronAPI.invoke('convert-svg-to-image', {
                 svgDataUrl: sym,
-                outputFormat: 'jpeg',
-                size: 128,
-                quality: 0.95
+                outputFormat: 'png',
+                size: 512
               });
               
-              if (convertedDataUrl && convertedDataUrl.startsWith('data:image/jpeg')) {
+              if (convertedDataUrl && convertedDataUrl.startsWith('data:image/png')) {
                 symbolDataUrlMap[sym] = convertedDataUrl;
               } else {
-                // Fallback to PNG
-                convertedDataUrl = await window.electronAPI.invoke('convert-svg-to-image', {
-                  svgDataUrl: sym,
-                  outputFormat: 'png',
-                  size: 128
-                });
-                
-                if (convertedDataUrl && convertedDataUrl.startsWith('data:image/png')) {
-                  symbolDataUrlMap[sym] = convertedDataUrl;
-                } else {
-                  console.warn('Both JPEG and PNG conversions failed for symbol');
-                }
+                console.warn('PNG conversion failed for symbol');
               }
             } catch (e) {
-              console.warn('Failed to convert SVG symbol using CairoSVG:', e);
+              console.warn('Failed to convert SVG symbol:', e);
             }
           }
         }
-      }));
+        // Handle other data URLs (custom uploaded symbols) by ensuring they're in the map
+        if (typeof sym === 'string' && sym.startsWith('data:image/')) {
+          // Custom uploaded symbols are already data URLs, so just ensure they're in the map
+          if (!symbolDataUrlMap[sym]) {
+            symbolDataUrlMap[sym] = sym;
+          }
+        }
+      }
       const exportCandidates = candidates.map(candidate => {
         let symbol = candidate.symbol;
         if (typeof symbol === 'string' && symbolDataUrlMap[symbol]) {
@@ -342,7 +297,7 @@ const ManageCandidates: React.FC<ManageCandidatesProps> = ({ organization_id: pr
       const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
-      const headerLogoSize = 56;
+      const headerLogoSize = 96;
       // Calculate widths for true centering
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(28);
@@ -364,51 +319,51 @@ const ManageCandidates: React.FC<ManageCandidatesProps> = ({ organization_id: pr
               format = 'PNG';
             }
           }
-          doc.addImage(orgLogo, format, headerStartX, y, headerLogoSize, headerLogoSize, undefined, 'FAST');
+          doc.addImage(orgLogo, format, headerStartX, y, headerLogoSize, headerLogoSize);
         } catch (e) {
           console.warn('Failed to add logo to PDF:', e);
         }
       } else if (orgLogo && orgLogo.startsWith('data:image/svg+xml')) {
-        // Handle SVG using CairoSVG conversion
+        // Handle SVG conversion
         try {
-          console.log('Converting SVG logo using CairoSVG...');
+          console.log('Converting SVG logo to image...');
           
-          // Try JPEG first
+          // Convert SVG to image using sharp with PNG format to preserve transparency
           let convertedDataUrl = await window.electronAPI.invoke('convert-svg-to-image', {
             svgDataUrl: orgLogo,
-            outputFormat: 'jpeg',
-            size: 256,
-            quality: 0.95
+            outputFormat: 'png',
+            size: 512
           });
           
-          if (convertedDataUrl && convertedDataUrl.startsWith('data:image/jpeg')) {
-            console.log('CairoSVG JPEG conversion successful, adding to PDF');
-            doc.addImage(convertedDataUrl, 'JPEG', headerStartX, y, headerLogoSize, headerLogoSize, undefined, 'FAST');
+          // Check if conversion was successful
+          if (convertedDataUrl && convertedDataUrl.startsWith('data:image/')) {
+            console.log('SVG conversion successful, adding to PDF');
+            const imageFormat = 'PNG'; // Always PNG for transparency
+            doc.addImage(convertedDataUrl, imageFormat, headerStartX, y, headerLogoSize, headerLogoSize);
             // Store the converted data URL for use on new pages
             (doc as any)._convertedLogoDataUrl = convertedDataUrl;
-            (doc as any)._convertedLogoFormat = 'JPEG';
+            (doc as any)._convertedLogoFormat = imageFormat;
           } else {
-            // Fallback to PNG
-            console.log('JPEG conversion failed, trying PNG...');
-            convertedDataUrl = await window.electronAPI.invoke('convert-svg-to-image', {
-              svgDataUrl: orgLogo,
-              outputFormat: 'png',
-              size: 256
-            });
-            
-            if (convertedDataUrl && convertedDataUrl.startsWith('data:image/png')) {
-              console.log('CairoSVG PNG conversion successful, adding to PDF');
-              doc.addImage(convertedDataUrl, 'PNG', headerStartX, y, headerLogoSize, headerLogoSize, undefined, 'FAST');
-              // Store the converted data URL for use on new pages
-              (doc as any)._convertedLogoDataUrl = convertedDataUrl;
-              (doc as any)._convertedLogoFormat = 'PNG';
-            } else {
-              console.warn('Both JPEG and PNG conversions failed, skipping logo');
-            }
+            console.warn('SVG conversion failed, skipping logo');
           }
         } catch (e) {
-          console.warn('Failed to convert SVG logo using CairoSVG:', e);
+          console.warn('Failed to convert SVG logo:', e);
           console.log('Continuing without logo...');
+        }
+      } else if (orgLogo && (orgLogo.endsWith('.png') || orgLogo.startsWith('/openmoji/'))) {
+        // Handle OpenMoji PNG paths for header with higher quality
+        try {
+          // Convert relative path to absolute URL
+          let emojiUrl = orgLogo;
+          if (emojiUrl.startsWith('/openmoji/')) {
+            // Use the base URL for OpenMoji assets
+            const baseUrl = (import.meta as any).env?.BASE_URL || process.env.BASE_URL || '';
+            emojiUrl = `${baseUrl}${emojiUrl}`;
+          }
+          // Use higher resolution for better quality in PDF header
+          doc.addImage(emojiUrl, 'PNG', headerStartX, y, 96, 96);
+        } catch (e) {
+          console.warn('Failed to add emoji logo to PDF:', e);
         }
       } else if (orgLogo) {
         console.log('Logo format not supported for PDF:', orgLogo.substring(0, 50) + '...');
@@ -486,9 +441,9 @@ const ManageCandidates: React.FC<ManageCandidatesProps> = ({ organization_id: pr
                   }
                 }
               // Crop the photo to a circle using canvas
-              const croppedPhoto = await cropImageToCircle(candidate.photo, 64);
+              const croppedPhoto = await cropImageToCircle(candidate.photo, 256);
               // Draw the photo (already circular)
-              doc.addImage(croppedPhoto, 'PNG', tableMargin + (photoColWidth-64)/2, rowY + (cellHeight-64)/2, 64, 64, undefined, 'FAST');
+              doc.addImage(croppedPhoto, 'PNG', tableMargin + (photoColWidth-64)/2, rowY + (cellHeight-64)/2, 64, 64);
               // Draw a border circle on top
               doc.setDrawColor(200, 210, 230);
               doc.setLineWidth(2);
@@ -511,8 +466,23 @@ const ManageCandidates: React.FC<ManageCandidatesProps> = ({ organization_id: pr
                     format = 'PNG';
                   }
                 }
-              doc.addImage(candidate.symbol, format, tableMargin + photoColWidth + (symbolColWidth-40)/2, rowY + (cellHeight-40)/2, 40, 40, undefined, 'FAST');
+              doc.addImage(candidate.symbol, format, tableMargin + photoColWidth + (symbolColWidth-56)/2, rowY + (cellHeight-56)/2, 56, 56);
             } catch (e) {}
+          } else if (candidate.symbol && (candidate.symbol.endsWith('.png') || candidate.symbol.startsWith('/openmoji/'))) {
+            // Handle OpenMoji PNG paths with higher quality
+            try {
+              // Convert relative path to absolute URL
+              let emojiUrl = candidate.symbol;
+              if (emojiUrl.startsWith('/openmoji/')) {
+                // Use the base URL for OpenMoji assets
+                const baseUrl = (import.meta as any).env?.BASE_URL || process.env.BASE_URL || '';
+                emojiUrl = `${baseUrl}${emojiUrl}`;
+              }
+              // Use larger size for better quality in PDF with high resolution assets
+              doc.addImage(emojiUrl, 'PNG', tableMargin + photoColWidth + (symbolColWidth-96)/2, rowY + (cellHeight-96)/2, 96, 96);
+            } catch (e) {
+              console.warn('Failed to add emoji to PDF:', e);
+            }
           } else if (candidate.symbol && candidate.symbol.length <= 3) {
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(28);
@@ -560,45 +530,49 @@ const ManageCandidates: React.FC<ManageCandidatesProps> = ({ organization_id: pr
                   format = 'PNG';
                 }
               }
-              doc.addImage(orgLogo, format, headerStartX, y, headerLogoSize, headerLogoSize, undefined, 'FAST');
+              doc.addImage(orgLogo, format, headerStartX, y, headerLogoSize, headerLogoSize);
             } catch (e) {
               console.warn('Failed to add logo to PDF on new page:', e);
             }
           } else if (orgLogo && orgLogo.startsWith('data:image/svg+xml')) {
-            // Handle SVG using CairoSVG conversion for new page (fallback)
+            // Handle SVG conversion for new page (fallback)
             try {
-              console.log('Converting SVG logo using CairoSVG for new page...');
+              console.log('Converting SVG logo to image for new page...');
               
-              // Try JPEG first
+              // Convert SVG to PNG to preserve transparency
               let convertedDataUrl = await window.electronAPI.invoke('convert-svg-to-image', {
                 svgDataUrl: orgLogo,
-                outputFormat: 'jpeg',
-                size: 256,
-                quality: 0.95
+                outputFormat: 'png',
+                size: 256
               });
               
-              if (convertedDataUrl && convertedDataUrl.startsWith('data:image/jpeg')) {
-                console.log('CairoSVG JPEG conversion successful for new page, adding to PDF');
-                doc.addImage(convertedDataUrl, 'JPEG', headerStartX, y, headerLogoSize, headerLogoSize, undefined, 'FAST');
+              if (convertedDataUrl && convertedDataUrl.startsWith('data:image/png')) {
+                console.log('SVG to PNG conversion successful for new page, adding to PDF');
+                doc.addImage(convertedDataUrl, 'PNG', headerStartX, y, headerLogoSize, headerLogoSize);
+                // Store the converted data URL for use on subsequent pages
+                (doc as any)._convertedLogoDataUrl = convertedDataUrl;
+                (doc as any)._convertedLogoFormat = 'PNG';
               } else {
-                // Fallback to PNG
-                console.log('JPEG conversion failed for new page, trying PNG...');
-                convertedDataUrl = await window.electronAPI.invoke('convert-svg-to-image', {
-                  svgDataUrl: orgLogo,
-                  outputFormat: 'png',
-                  size: 256
-                });
-                
-                if (convertedDataUrl && convertedDataUrl.startsWith('data:image/png')) {
-                  console.log('CairoSVG PNG conversion successful for new page, adding to PDF');
-                  doc.addImage(convertedDataUrl, 'PNG', headerStartX, y, headerLogoSize, headerLogoSize, undefined, 'FAST');
-                } else {
-                  console.warn('Both JPEG and PNG conversions failed for new page, skipping logo');
-                }
+                console.warn('PNG conversion failed for new page, skipping logo');
               }
             } catch (e) {
-              console.warn('Failed to convert SVG logo using CairoSVG for new page:', e);
+              console.warn('Failed to convert SVG logo for new page:', e);
               console.log('Continuing without logo for new page...');
+            }
+          } else if (orgLogo && (orgLogo.endsWith('.png') || orgLogo.startsWith('/openmoji/'))) {
+            // Handle OpenMoji PNG paths for header on new pages with higher quality
+            try {
+              // Convert relative path to absolute URL
+              let emojiUrl = orgLogo;
+              if (emojiUrl.startsWith('/openmoji/')) {
+                // Use the base URL for OpenMoji assets
+                const baseUrl = (import.meta as any).env?.BASE_URL || process.env.BASE_URL || '';
+                emojiUrl = `${baseUrl}${emojiUrl}`;
+              }
+              // Use higher resolution for better quality in PDF header on new pages
+              doc.addImage(emojiUrl, 'PNG', headerStartX, y, 96, 96);
+            } catch (e) {
+              console.warn('Failed to add emoji logo to PDF on new page:', e);
             }
           } else if (orgLogo) {
             console.log('Logo format not supported for PDF on new page:', orgLogo.substring(0, 50) + '...');

@@ -20,57 +20,118 @@ const ResultsWindow: React.FC<ResultsWindowProps> = ({ orgId, electionId, show, 
     if (!show) return;
     const fetchResults = async () => {
       setLoading(true);
-      // Fetch all votes for this election
-      const votes = await ipc.invoke('get-votes', { electionId });
-      // Fetch election to get positions
-      const orgs = await ipc.invoke('get-organizations');
-      const foundOrg = orgs.find((o: any) => String(o.id) === String(orgId));
-      let foundElection = null;
-      if (foundOrg) {
-        const elections = await ipc.invoke('get-elections', foundOrg.id);
-        foundElection = elections.find((e: any) => String(e.id) === String(electionId));
-      }
-      let pos: string[] = [];
-      if (foundElection && foundElection.positions) {
-        pos = Array.isArray(foundElection.positions) ? foundElection.positions : [];
-      }
-      // Fetch all candidates for all positions
-      let allCandidates: any[] = [];
-      for (const position of pos) {
-        const positionCandidates = await ipc.invoke('get-candidates', { organizationId: foundOrg.id, position });
-        allCandidates = allCandidates.concat(positionCandidates);
-      }
-      // Tally votes
-      const tally: Record<string, Record<number, number>> = {};
-      for (const position of pos) {
-        tally[position] = {};
-        for (const candidate of allCandidates.filter(c => c.position === position)) {
-          tally[position][candidate.id] = 0;
+      try {
+        console.log('=== FETCHING RESULTS DEBUG ===');
+        console.log('Election ID:', electionId);
+        console.log('Org ID:', orgId);
+        
+        // Fetch all votes for this election
+        const votes = await ipc.invoke('get-votes', { electionId });
+        console.log('All votes for election:', votes);
+        
+        // Get all unique session_ids for this election, sorted by most recent
+        const sessionGroups = votes.reduce((acc: Record<string, any[]>, v: any) => {
+          if (!acc[v.session_id]) acc[v.session_id] = [];
+          acc[v.session_id].push(v);
+          return acc;
+        }, {});
+        console.log('Session groups:', sessionGroups);
+        
+        const sessionIds = Object.keys(sessionGroups).sort((a, b) => {
+          // Sort by most recent vote in each session
+          const aTime = sessionGroups[a][0]?.timestamp ? new Date(sessionGroups[a][0].timestamp).getTime() : 0;
+          const bTime = sessionGroups[b][0]?.timestamp ? new Date(sessionGroups[b][0].timestamp).getTime() : 0;
+          return bTime - aTime;
+        });
+        console.log('Sorted session IDs:', sessionIds);
+        
+        // Use the latest session or all votes if no sessions
+        const latestSessionId = sessionIds.length > 0 ? sessionIds[0] : null;
+        const sessionVotes = latestSessionId && Array.isArray(sessionGroups[latestSessionId]) ? sessionGroups[latestSessionId] : votes;
+        console.log('Latest session ID:', latestSessionId);
+        console.log('Session votes to process:', sessionVotes);
+        
+        // Fetch election to get positions
+        const orgs = await ipc.invoke('get-organizations');
+        const foundOrg = orgs.find((o: any) => String(o.id) === String(orgId));
+        console.log('Found org:', foundOrg);
+        
+        let foundElection = null;
+        if (foundOrg) {
+          const elections = await ipc.invoke('get-elections', foundOrg.id);
+          foundElection = elections.find((e: any) => String(e.id) === String(electionId));
         }
-      }
-      for (const voteSession of votes) {
-        const voteObj = typeof voteSession.votes === 'string' ? JSON.parse(voteSession.votes) : voteSession.votes;
-        for (const [position, candidateId] of Object.entries(voteObj) as [string, number][]) {
-          if (tally[position] && tally[position][candidateId]) {
-            tally[position][candidateId] += 1;
-          } else if (tally[position]) {
-            tally[position][candidateId] = 1;
+        console.log('Found election:', foundElection);
+        
+        let pos: string[] = [];
+        if (foundElection && foundElection.positions) {
+          pos = Array.isArray(foundElection.positions) ? foundElection.positions : [];
+        }
+        console.log('Positions:', pos);
+        
+        // Fetch all candidates for all positions
+        let allCandidates: any[] = [];
+        for (const position of pos) {
+          const positionCandidates = await ipc.invoke('get-candidates', { organizationId: foundOrg.id, position });
+          console.log(`Candidates for position ${position}:`, positionCandidates);
+          allCandidates = allCandidates.concat(positionCandidates);
+        }
+        console.log('All candidates:', allCandidates);
+        
+        // Tally votes
+        const tally: Record<string, Record<number, number>> = {};
+        for (const position of pos) {
+          tally[position] = {};
+          for (const candidate of allCandidates.filter(c => c.position === position)) {
+            tally[position][candidate.id] = 0;
           }
         }
-      }
-      // Prepare results array
-      const resultsArr: any[] = [];
-      for (const position of pos) {
-        for (const candidate of allCandidates.filter(c => c.position === position)) {
-          resultsArr.push({
-            position,
-            candidateName: candidate.name,
-            votes: tally[position][candidate.id] || 0,
-          });
+        console.log('Initial tally structure:', tally);
+        
+        for (const voteSession of sessionVotes) {
+          try {
+            const voteObj = typeof voteSession.votes === 'string' ? JSON.parse(voteSession.votes) : voteSession.votes;
+            console.log('Processing vote session:', voteSession);
+            console.log('Vote object:', voteObj);
+            
+            if (voteObj && typeof voteObj === 'object') {
+              for (const [position, candidateId] of Object.entries(voteObj)) {
+                // Convert candidateId to number to ensure type matching
+                const candidateIdNum = Number(candidateId);
+                console.log(`Processing vote for position ${position}, candidate ${candidateId} (converted to ${candidateIdNum})`);
+                if (tally[position] && tally[position][candidateIdNum] !== undefined) {
+                  tally[position][candidateIdNum] += 1;
+                  console.log(`Incremented tally for ${position}/${candidateIdNum}:`, tally[position][candidateIdNum]);
+                } else {
+                  console.log(`No tally entry for ${position}/${candidateIdNum}`);
+                }
+              }
+            }
+          } catch (e) {
+            console.error('Error parsing vote data:', e);
+          }
         }
+        console.log('Final tally:', tally);
+        
+        // Prepare results array
+        const resultsArr: any[] = [];
+        for (const position of pos) {
+          for (const candidate of allCandidates.filter(c => c.position === position)) {
+            resultsArr.push({
+              position,
+              candidateName: candidate.name,
+              votes: tally[position][candidate.id] || 0,
+            });
+          }
+        }
+        console.log('Results array:', resultsArr);
+        setResults(resultsArr);
+      } catch (error) {
+        console.error('Error fetching results:', error);
+        setResults([]);
+      } finally {
+        setLoading(false);
       }
-      setResults(resultsArr);
-      setLoading(false);
     };
     fetchResults();
   }, [show, orgId, electionId]);

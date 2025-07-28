@@ -993,6 +993,28 @@ const IndividualElection: React.FC = () => {
                         }}>
                           Election Completed
                         </div>
+                        {election.status === 'Completed' && (
+                          <GradientButton1
+                            className="election-action-btn"
+                            onClick={() => navigate(`/organization/${orgId}/election/${electionId}/results`)}
+                            style={{
+                              width: '100%',
+                              minHeight: 48,
+                              fontWeight: 700,
+                              fontSize: 18,
+                              borderRadius: 32,
+                              padding: '0.5rem 0',
+                              letterSpacing: '0.01em',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              textAlign: 'center',
+                              background: 'linear-gradient(90deg, #4f8cff 0%, #7a7cff 100%)',
+                            }}
+                          >
+                            View Results
+                          </GradientButton1>
+                        )}
                         <GradientButton1
                           className="election-action-btn"
                           onClick={handleReconductElection}

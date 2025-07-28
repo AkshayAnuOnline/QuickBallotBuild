@@ -9,15 +9,35 @@
     "dist-electron/**/*",
     "node_modules/**/*"
   ],
+  "asar": true,
+  "asarUnpack": [
+    "**/*.node",
+    "node_modules/sharp/**/*"
+  ],
+  "extraResources": [
+    {
+      "from": "node_modules/sharp",
+      "to": "sharp",
+      "filter": ["**/*"]
+    }
+  ],
+  "buildDependenciesFromSource": true,
+  "nodeGypRebuild": true,
   "mac": {
     "category": "public.app-category.utilities",
-    "target": "dmg"
+    "target": "dmg",
+    "entitlements": "assets/entitlements.mac.plist",
+    "entitlementsInherit": "assets/entitlements.mac.plist",
+    "extendInfo": {
+      "NSCameraUsageDescription": "QuickBallot needs access to your camera to scan QR codes for voter authentication."
+    }
   },
   "win": {
     "target": "nsis"
   },
   "linux": {
-    "target": "AppImage"
+    "target": "AppImage",
+    "category": "Utility"
   },
   "nsis": {
     "oneClick": false,

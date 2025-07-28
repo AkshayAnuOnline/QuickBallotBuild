@@ -193,6 +193,10 @@ const DirectVotingWindow: React.FC<DirectVotingWindowProps> = ({ orgId, election
   const handleCastVote = async () => {
     if (selectedCandidate === null) return;
 
+    // Play cast vote sound
+    const audio = new Audio('/Cast Vote Sound.wav');
+    audio.play().catch(e => console.log('Audio play failed:', e));
+
     // Save vote for current position
     const newVotes = { ...votes, [currentPosition]: selectedCandidate };
     setVotes(newVotes);

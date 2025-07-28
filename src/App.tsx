@@ -67,7 +67,7 @@ const IndividualPositionWrapper: React.FC = () => {
   return <ManageCandidates organization_id={orgId} position={positionName} orgName={orgName} orgLogo={orgLogo || undefined} electionName={electionName} />;
 };
 
-// VotingWindowWrapper: Reads orgId and electionId from query string
+// VotingWindowWrapper: Reads orgId and electionId from query string or hash
 const VotingWindowWrapper: React.FC = () => {
   const [orgId, setOrgId] = useState<string | null>(null);
   const [electionId, setElectionId] = useState<string | null>(null);
@@ -76,7 +76,23 @@ const VotingWindowWrapper: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+    // Parse parameters from hash (for HashRouter) or search (for BrowserRouter)
+    let params: URLSearchParams;
+    
+    // Check if we're using hash-based routing
+    if (window.location.hash) {
+      // Extract query string from hash part (after #/voting?)
+      const hashParts = window.location.hash.split('?');
+      if (hashParts.length > 1) {
+        params = new URLSearchParams(hashParts[1]);
+      } else {
+        params = new URLSearchParams();
+      }
+    } else {
+      // Fallback to regular query string
+      params = new URLSearchParams(window.location.search);
+    }
+    
     const orgIdParam = params.get('orgId');
     const electionIdParam = params.get('electionId');
     const sessionIdParam = params.get('sessionId');
@@ -84,11 +100,15 @@ const VotingWindowWrapper: React.FC = () => {
     setOrgId(orgIdParam);
     setElectionId(electionIdParam);
     setSessionId(sessionIdParam);
+    setElectionType(typeParam);
+    
+    // If we have type param, we don't need to fetch election data
     if (typeParam) {
-      setElectionType(typeParam);
       setLoading(false);
       return;
     }
+    
+    // If we have orgId and electionId, fetch election type
     if (orgIdParam && electionIdParam) {
       window.electronAPI.invoke('get-organizations').then((orgs: any[]) => {
         const foundOrg = orgs.find((o: any) => String(o.id) === String(orgIdParam));

@@ -1,4 +1,4 @@
-name: Build Electron App
+name: Build/release Electron App
 
 on:
   push:
@@ -11,41 +11,55 @@ jobs:
   build-mac:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 18
-      - run: npm install
-      - run: npm run electron:build -- --mac
-      - uses: actions/upload-artifact@v4
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Build macOS
+        run: npm run electron:build -- --mac
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: macos-installer
-          path: release/*.dmg
+          name: macos-installers
+          path: release/*.{dmg,zip}
 
   build-win:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 18
-      - run: npm install
-      - run: npm run electron:build -- --win
-      - uses: actions/upload-artifact@v4
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Build Windows
+        run: npm run electron:build -- --win
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: windows-installer
-          path: release/*.exe
+          name: windows-installers
+          path: release/*.{exe,msi}
 
   build-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 18
-      - run: npm install
-      - run: npm run electron:build -- --linux
-      - uses: actions/upload-artifact@v4
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Build Linux
+        run: npm run electron:build -- --linux
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: linux-installer
-          path: release/*.AppImage 
+          name: linux-installers
+          path: |
+            release/*.AppImage
+            release/*.{deb,rpm}

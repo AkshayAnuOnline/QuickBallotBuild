@@ -37,6 +37,20 @@ const QRBasedVotingWindow: React.FC<VotingWindowProps> = (props) => {
     });
   }, [orgId]);
 
+  // Request camera permission when component mounts
+  useEffect(() => {
+    const requestPermission = async () => {
+      try {
+        // Request permission through main process
+        await window.electronAPI.invoke('request-camera-permission');
+      } catch (error) {
+        console.log('Permission request handled by browser');
+      }
+    };
+    
+    requestPermission();
+  }, []);
+
   // Escape key handler for admin modal (only before authentication)
   useEffect(() => {
     if (authenticatedVoter) return;
@@ -68,6 +82,68 @@ const QRBasedVotingWindow: React.FC<VotingWindowProps> = (props) => {
     setAuthError('');
     setMode('qr');
   }, [sessionId]);
+
+  // Initialize scanner with proper error handling
+  useEffect(() => {
+    if (mode !== 'qr' || authenticatedVoter || !videoRef.current) return;
+
+    const initScanner = async () => {
+      try {
+        setScanning(true);
+        
+        // Clean up previous scanner if exists
+        if (controlsRef.current) {
+          controlsRef.current.stop();
+          controlsRef.current = null;
+        }
+        
+        // Initialize new scanner
+        const codeReader = new BrowserQRCodeReader();
+        qrCodeReaderRef.current = codeReader;
+        
+        // Start scanning
+        if (videoRef.current) {
+          const controls = await codeReader.decodeFromVideoDevice(
+            undefined,
+            videoRef.current,
+            (result, _, controls) => {
+              if (result) {
+                handleScan(result.getText());
+                setScanning(false);
+                controls?.stop();
+              }
+            }
+          );
+          
+          controlsRef.current = controls;
+        }
+      } catch (error: any) {
+        console.error('Camera error:', error);
+        setScanning(false);
+        
+        // Handle permission denied error
+        if (error.name === 'NotAllowedError' || error.message?.includes('Permission')) {
+          setAuthError('Camera access denied. Please allow camera access in system settings.');
+        } else {
+          setAuthError('Failed to access camera. Please check if another application is using it.');
+        }
+      }
+    };
+
+    // Small delay to ensure video element is ready
+    const timeoutId = setTimeout(initScanner, 100);
+    
+    return () => {
+      clearTimeout(timeoutId);
+      if (controlsRef.current) {
+        controlsRef.current.stop();
+        controlsRef.current = null;
+      }
+      if (qrCodeReaderRef.current) {
+        qrCodeReaderRef.current = null;
+      }
+    };
+  }, [mode, authenticatedVoter, scannerKey]);
 
   // Duplicate check logic
   const checkAlreadyVoted = async (voter: any) => {
@@ -206,6 +282,32 @@ const QRBasedVotingWindow: React.FC<VotingWindowProps> = (props) => {
             </>
           )}
           {authError && <div style={{ color: '#eb445a', fontWeight: 600, marginTop: 10 }}>{authError}</div>}
+          {authError && authError.includes('Camera access denied') && (
+            <button
+              type="button"
+              style={{
+                width: '100%',
+                background: '#4f8cff',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 10,
+                fontWeight: 700,
+                fontSize: 16,
+                padding: '0.7rem 0',
+                marginTop: 10,
+                cursor: 'pointer',
+              }}
+              onClick={async () => {
+                try {
+                  await window.electronAPI.invoke('open-permission-settings');
+                } catch (error) {
+                  console.error('Failed to open permission settings:', error);
+                }
+              }}
+            >
+              Open Camera Settings
+            </button>
+          )}
             {authError === 'You have already voted in this election.' && !authenticatedVoter && (
               <button
                 type="button"

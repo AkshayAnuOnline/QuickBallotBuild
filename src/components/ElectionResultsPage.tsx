@@ -102,29 +102,17 @@ const ElectionResultsPage: React.FC = () => {
     if (org && org.logo && /^data:image\//.test(org.logo)) {
       try {
         if (org.logo.startsWith('data:image/svg+xml')) {
-          // Handle SVG using CairoSVG conversion (same as candidate list)
+          // Handle SVG using sharp conversion
           let convertedDataUrl = await window.electronAPI.invoke('convert-svg-to-image', {
             svgDataUrl: org.logo,
-            outputFormat: 'jpeg',
-            size: 128,
-            quality: 0.95
+            outputFormat: 'png',
+            size: 512
           });
-          if (convertedDataUrl && convertedDataUrl.startsWith('data:image/jpeg')) {
-            doc.addImage(convertedDataUrl, 'JPEG', centerX - headerLogoSize/2, y, headerLogoSize, headerLogoSize, undefined, 'FAST');
+          if (convertedDataUrl && convertedDataUrl.startsWith('data:image/png')) {
+            doc.addImage(convertedDataUrl, 'PNG', centerX - headerLogoSize/2, y, headerLogoSize, headerLogoSize);
             y += headerLogoSize + 10;
           } else {
-            // Fallback to PNG
-            convertedDataUrl = await window.electronAPI.invoke('convert-svg-to-image', {
-              svgDataUrl: org.logo,
-              outputFormat: 'png',
-              size: 128
-            });
-            if (convertedDataUrl && convertedDataUrl.startsWith('data:image/png')) {
-              doc.addImage(convertedDataUrl, 'PNG', centerX - headerLogoSize/2, y, headerLogoSize, headerLogoSize, undefined, 'FAST');
-              y += headerLogoSize + 10;
-            } else {
-              y += headerLogoSize + 10;
-            }
+            y += headerLogoSize + 10;
           }
         } else {
           let format = 'PNG';
@@ -135,7 +123,7 @@ const ElectionResultsPage: React.FC = () => {
               format = 'PNG';
             }
           }
-          doc.addImage(org.logo, format, centerX - headerLogoSize/2, y, headerLogoSize, headerLogoSize, undefined, 'FAST');
+          doc.addImage(org.logo, format, centerX - headerLogoSize/2, y, headerLogoSize, headerLogoSize);
           y += headerLogoSize + 10;
         }
       } catch (e) { y += headerLogoSize + 10; }
@@ -491,6 +479,18 @@ const ElectionResultsPage: React.FC = () => {
 
   return (
     <div style={{ background: 'var(--dark)', minHeight: '100vh' }}>
+      <style>
+        {`
+        .custom-dropdown-item:hover {
+          background-color: #3d4052 !important;
+          color: #fff !important;
+        }
+        .custom-dropdown-item:focus {
+          background-color: #3d4052 !important;
+          color: #fff !important;
+        }
+        `}
+      </style>
       <div className="container py-4">
         <Button variant="link" className="p-0" style={{ color: '#4f8cff', fontSize: 28, marginBottom: 24 }} onClick={() => navigate(`/organization/${orgId}/election/${electionId}`)}>
           <FaArrowLeft />
@@ -518,6 +518,7 @@ const ElectionResultsPage: React.FC = () => {
                         ? { background: '#2563eb', color: '#fff', fontWeight: 700 }
                         : { color: '#fff' }
                     }
+                    className="custom-dropdown-item"
                   >
                         {idx === 0
                       ? `Latest Result (${sessionGroups[id] && sessionGroups[id][0] ? new Date(sessionGroups[id][0].timestamp).toLocaleString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true, year: 'numeric', month: '2-digit', day: '2-digit' }) : 'No timestamp'})`
@@ -570,65 +571,76 @@ const ElectionResultsPage: React.FC = () => {
                 </div>
               </div>
             )}
-            {/* Results Table and Analytics */}
-            <div className="row g-4">
-              {positions.map(position => (
-                <div className="col-md-6" key={position}>
-                  <Card
-                    style={{
-                      background: 'var(--dark-light)',
-                      borderRadius: 18,
-                      border: '1.5px solid #31334a',
-                      marginBottom: 32,
-                    }}
-                  >
-                    <Card.Body>
-                      <h3 className="text-primary fw-bold mb-3">{position}</h3>
-                      <Table striped bordered hover variant="dark" style={{ marginBottom: 24 }}>
-                        <thead>
-                          <tr>
-                            <th>Candidate</th>
-                            <th>Votes</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {candidates
-                            .filter((c: any) => c.position === position)
-                            .sort((a: any, b: any) => (tally[position][b.id] || 0) - (tally[position][a.id] || 0))
-                            .map((candidate: any) => (
-                            <tr key={candidate.id}>
-                              <td>{candidate.name}</td>
-                              <td>{tally[position][candidate.id] || 0}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </Table>
-                      <div style={{ margin: '0 auto' }}>
-                        <Bar data={getChartData(position)} options={{
-                          responsive: true,
-                          plugins: {
-                            legend: { display: false },
-                            title: { display: true, text: 'Votes per Candidate' },
-                          },
-                          scales: {
-                            y: { beginAtZero: true }
-                          }
-                        }} />
-                      </div>
-                    </Card.Body>
-                  </Card>
+            {/* Check if election is completed before showing results */}
+            {election && election.status !== 'Completed' ? (
+              <div className="alert alert-warning text-center" style={{ borderRadius: '0.8rem', fontWeight: 600, fontSize: '1.2rem' }}>
+                <h3>Election Not Completed</h3>
+                <p>Results are not available until the election is officially completed.</p>
+                <p>Current Status: <strong>{election.status}</strong></p>
+              </div>
+            ) : (
+              <>
+                {/* Results Table and Analytics */}
+                <div className="row g-4">
+                  {positions.map(position => (
+                    <div className="col-md-6" key={position}>
+                      <Card
+                        style={{
+                          background: 'var(--dark-light)',
+                          borderRadius: 18,
+                          border: '1.5px solid #31334a',
+                          marginBottom: 32,
+                        }}
+                      >
+                        <Card.Body>
+                          <h3 className="text-primary fw-bold mb-3">{position}</h3>
+                          <Table striped bordered hover variant="dark" style={{ marginBottom: 24 }}>
+                            <thead>
+                              <tr>
+                                <th>Candidate</th>
+                                <th>Votes</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {candidates
+                                .filter((c: any) => c.position === position)
+                                .sort((a: any, b: any) => (tally[position][b.id] || 0) - (tally[position][a.id] || 0))
+                                .map((candidate: any) => (
+                                <tr key={candidate.id}>
+                                  <td>{candidate.name}</td>
+                                  <td>{tally[position][candidate.id] || 0}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </Table>
+                          <div style={{ margin: '0 auto' }}>
+                            <Bar data={getChartData(position)} options={{
+                              responsive: true,
+                              plugins: {
+                                legend: { display: false },
+                                title: { display: true, text: 'Votes per Candidate' },
+                              },
+                              scales: {
+                                y: { beginAtZero: true }
+                              }
+                            }} />
+                          </div>
+                        </Card.Body>
+                      </Card>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            {/* Voter Participation Card at the bottom */}
-            {org && org.voters && sessionVotes.length > 0 && (() => {
-              // Find the type of the current session (if available)
-              const sessionType = sessionVotes[0]?.election_type || election?.type;
-              if (sessionType === 'QR' || sessionType === 'VoterID') {
-                return <VotersStatusCard org={org} votes={sessionVotes} />;
-              }
-              return null;
-            })()}
+                {/* Voter Participation Card at the bottom */}
+                {org && org.voters && sessionVotes.length > 0 && (() => {
+                  // Find the type of the current session (if available)
+                  const sessionType = sessionVotes[0]?.election_type || election?.type;
+                  if (sessionType === 'QR' || sessionType === 'VoterID') {
+                    return <VotersStatusCard org={org} votes={sessionVotes} />;
+                  }
+                  return null;
+                })()}
+              </>
+            )}
           </>
         )}
       </div>

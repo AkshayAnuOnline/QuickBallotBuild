@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, Menu, ipcMain, shell, systemPreferences } from 'electron';
 import * as path from 'path';
 import { installExtension, REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
 import Database from 'better-sqlite3';
@@ -6,6 +6,125 @@ import bcrypt from 'bcryptjs';
 import { spawn } from 'child_process';
 import * as https from 'https';
 import * as fs from 'fs';
+// Import sharp dynamically to avoid packaging issues
+let sharp: any;
+
+// Function to load sharp with multiple fallback approaches
+const loadSharp = async () => {
+  try {
+    console.log('Attempting to load sharp module...');
+    console.log('App path:', app.getAppPath());
+    console.log('Resource path:', process.resourcesPath);
+    
+    // Method 1: Try dynamic import with full path
+    try {
+      const sharpPath = require.resolve('sharp');
+      console.log('Sharp path resolved to:', sharpPath);
+      sharp = (await import('sharp')).default;
+      console.log('Sharp module loaded successfully with dynamic import:', !!sharp);
+      return true;
+    } catch (error) {
+      console.warn('Failed to load sharp with dynamic import:', error);
+    }
+    
+    // Method 2: Try require
+    try {
+      sharp = require('sharp');
+      console.log('Sharp module loaded successfully with require:', !!sharp);
+      return true;
+    } catch (error) {
+      console.warn('Failed to load sharp with require:', error);
+    }
+    
+    // Method 3: Try direct path require
+    try {
+      const sharpPath = require.resolve('sharp');
+      sharp = require(sharpPath);
+      console.log('Sharp module loaded successfully with direct path require:', !!sharp);
+      return true;
+    } catch (error) {
+      console.warn('Failed to load sharp with direct path require:', error);
+    }
+    
+    // Method 4: Try loading from app resources in packaged environment
+    try {
+      const isDev = !app.isPackaged;
+      console.log('App is packaged:', !isDev);
+      
+      if (!isDev) {
+        // In packaged app, try to load from app.asar.unpacked
+        const path = require('path');
+        const appPath = app.getAppPath();
+        console.log('App path:', appPath);
+        
+        // Try to load from app.asar.unpacked/node_modules
+        const sharpUnpackedPath = path.join(appPath, '..', 'app.asar.unpacked', 'node_modules', 'sharp');
+        console.log('Trying to load sharp from unpacked path:', sharpUnpackedPath);
+        
+        if (require('fs').existsSync(sharpUnpackedPath)) {
+          const sharpLibPath = path.join(sharpUnpackedPath, 'lib', 'index.js');
+          console.log('Loading sharp from:', sharpLibPath);
+          sharp = require(sharpLibPath);
+          console.log('Sharp module loaded successfully from unpacked path:', !!sharp);
+          return true;
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load sharp from unpacked path:', error);
+    }
+    
+    console.error('Failed to load sharp module with all methods');
+    return false;
+  } catch (error) {
+    console.error('Error in loadSharp function:', error);
+    return false;
+  }
+};
+
+// Load sharp immediately and store the promise
+const sharpLoadPromise = loadSharp();
+
+// Function to ensure sharp is loaded before using it
+const ensureSharpLoaded = async () => {
+  try {
+    // Wait for the initial load attempt
+    await sharpLoadPromise;
+    
+    // If sharp is still not loaded, try one more time
+    if (!sharp) {
+      console.log('Sharp not loaded yet, trying again...');
+      await loadSharp();
+      
+      // Give it a moment to initialize
+      if (!sharp) {
+        console.log('Still no sharp, waiting 200ms...');
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+    }
+    
+    return !!sharp;
+  } catch (error) {
+    console.error('Error ensuring sharp loaded:', error);
+    return false;
+  }
+};
+
+// Import the svg2img library for Node.js-based SVG conversion (fallback option)
+let svg2img: any;
+try {
+  svg2img = require('svg2img');
+} catch (error) {
+  console.warn('svg2img module not available');
+}
+
+// Type definitions
+interface Candidate {
+  organization_id: number;
+  position: string;
+  name: string;
+  symbol: string;
+  photo?: string | null;
+}
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -85,12 +204,15 @@ db.prepare(`
 db.prepare(`
   CREATE TABLE IF NOT EXISTS votes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    session_id TEXT NOT NULL,
-    election_id INTEGER NOT NULL,
-    organization_id INTEGER NOT NULL,
-    votes TEXT NOT NULL,
-    election_type TEXT NOT NULL,
+    session_id TEXT,
+    election_id INTEGER,
+    organization_id INTEGER,
+    votes TEXT,
+    election_type TEXT,
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    voter_id TEXT,
+    candidate_id TEXT,
+    position TEXT,
     FOREIGN KEY (election_id) REFERENCES elections(id) ON DELETE CASCADE,
     FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE
   )
@@ -116,6 +238,9 @@ addColumnIfNotExists('votes', 'election_type', 'TEXT');
 addColumnIfNotExists('votes', 'timestamp', 'DATETIME');
 addColumnIfNotExists('votes', 'organization_id', 'INTEGER');
 addColumnIfNotExists('votes', 'votes', 'TEXT');
+addColumnIfNotExists('votes', 'voter_id', 'TEXT');
+addColumnIfNotExists('votes', 'candidate_id', 'TEXT');
+addColumnIfNotExists('votes', 'position', 'TEXT');
 
 // One-time migration: Make candidate_id, position, and voter_id nullable in votes table
 try {
@@ -367,9 +492,10 @@ ipcMain.handle('get-candidates', (event, { organizationId, position }) => {
   return db.prepare('SELECT * FROM candidates WHERE organization_id = ? AND position = ? ORDER BY created_at DESC').all(organizationId, position);
 });
 
-ipcMain.handle('create-candidate', (event, candidate) => {
+ipcMain.handle('create-candidate', (event, candidate: Candidate) => {
   // Enforce max 10 candidates per position
-  const count = db.prepare('SELECT COUNT(*) as cnt FROM candidates WHERE organization_id = ? AND position = ?').get(candidate.organization_id, candidate.position).cnt;
+  const countResult: any = db.prepare('SELECT COUNT(*) as cnt FROM candidates WHERE organization_id = ? AND position = ?').get(candidate.organization_id, candidate.position);
+  const count = countResult.cnt;
   if (count >= 10) {
     throw new Error('Maximum of 10 candidates allowed per position.');
   }
@@ -396,9 +522,10 @@ ipcMain.handle('delete-candidate', (event, id) => {
   return id;
 });
 
-ipcMain.handle('batch-create-candidates', (event, { organization_id, position, candidates }) => {
+ipcMain.handle('batch-create-candidates', (event, { organization_id, position, candidates }: { organization_id: number, position: string, candidates: Candidate[] }) => {
   // Enforce max 10 candidates per position
-  const count = db.prepare('SELECT COUNT(*) as cnt FROM candidates WHERE organization_id = ? AND position = ?').get(organization_id, position).cnt;
+  const countResult: any = db.prepare('SELECT COUNT(*) as cnt FROM candidates WHERE organization_id = ? AND position = ?').get(organization_id, position);
+  const count = countResult.cnt;
   if (count + candidates.length > 10) {
     throw new Error('Import would exceed the 10 candidate limit per position. Please reduce the number of candidates.');
   }
@@ -423,7 +550,8 @@ ipcMain.handle('save-votes', (event, voteData) => {
   // Provide a dummy voter_id and candidate_id for direct voting if not present
   const voterId = voteData.voter_id || 'DIRECT';
   const candidateId = voteData.candidate_id || 'DIRECT';
-  const stmt = db.prepare('INSERT INTO votes (session_id, election_id, organization_id, votes, election_type, timestamp, voter_id, candidate_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+  const position = voteData.position || '';
+  const stmt = db.prepare('INSERT INTO votes (session_id, election_id, organization_id, votes, election_type, timestamp, voter_id, candidate_id, position) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
   const info = stmt.run(
     voteData.sessionId,
     voteData.electionId,
@@ -432,7 +560,8 @@ ipcMain.handle('save-votes', (event, voteData) => {
     voteData.electionType,
     voteData.timestamp || new Date().toISOString(),
     voterId,
-    candidateId
+    candidateId,
+    position
   );
   return { id: info.lastInsertRowid, ...voteData };
 });
@@ -476,6 +605,10 @@ ipcMain.handle('open-voting-window', async (event, { orgId, electionId, sessionI
     show: false,
     skipTaskbar: true,
     backgroundColor: '#1a2038',
+    fullscreenable: true,
+    closable: false,
+    minimizable: false,
+    maximizable: false,
   });
   // Prevent closing/minimizing except via IPC
   votingWindow.on('close', (e) => {
@@ -486,12 +619,15 @@ ipcMain.handle('open-voting-window', async (event, { orgId, electionId, sessionI
   });
   // Load the voting route (hash or query params)
   const votingUrl = isDev
-    ? `http://localhost:5177/voting?orgId=${orgId}&electionId=${electionId}&sessionId=${sessionId}&type=${type}`
+    ? `http://localhost:5177/#/voting?orgId=${orgId}&electionId=${electionId}&sessionId=${sessionId}&type=${type}`
     : `file://${path.join(__dirname, '../dist/index.html')}#/voting?orgId=${orgId}&electionId=${electionId}&sessionId=${sessionId}&type=${type}`;
   await votingWindow.loadURL(votingUrl);
   votingWindow.once('ready-to-show', () => {
-    votingWindow?.show();
-    votingWindow?.focus();
+    if (votingWindow) {
+      votingWindow.setFullScreen(true);
+      votingWindow.show();
+      votingWindow.focus();
+    }
   });
 });
 ipcMain.handle('close-voting-window', () => {
@@ -505,70 +641,211 @@ ipcMain.handle('close-voting-window', () => {
 });
 
 // --- SVG Conversion IPC Handler ---
-ipcMain.handle('convert-svg-to-image', async (event, { svgDataUrl, outputFormat, size, quality }) => {
-  return new Promise((resolve, reject) => {
-    try {
-      // Get the path to the Python script
-      const scriptPath = path.join(__dirname, '../svg_converter.py');
-      const pythonPath = path.join(__dirname, '../venv/bin/python');
+// Handle SVG to image conversion using sharp for higher quality
+ipcMain.handle('convert-svg-to-image', async (event, args) => {
+  const { svgDataUrl, outputFormat = 'jpeg', size = 512, quality = 0.95 } = args;
+  
+  try {
+    // Validate input
+    if (!svgDataUrl || typeof svgDataUrl !== 'string') {
+      throw new Error('Invalid SVG data URL provided');
+    }
+    
+    // Extract the base64 part of the data URL
+    const base64Data = svgDataUrl.replace(/^data:image\/svg\+xml;base64,/, '');
+    
+    // Convert base64 to string
+    const svgString = Buffer.from(base64Data, 'base64').toString('utf-8');
+    
+    // Ensure sharp is loaded before proceeding
+    console.log('Ensuring sharp is loaded...');
+    const sharpAvailable = await ensureSharpLoaded();
+    console.log('Sharp availability after ensure:', sharpAvailable);
+    
+    // Try to use sharp for higher quality conversion
+    console.log('Checking for sharp availability:', !!sharp);
+    if (sharp) {
+      console.log('Converting SVG using sharp:', { outputFormat, size, quality });
       
-      // Prepare command line arguments
-      const args = [scriptPath, svgDataUrl, outputFormat, size.toString()];
-      if (quality !== undefined) {
-        args.push(quality.toString());
+      // Use sharp with high density for better quality
+      // Set density to 300 DPI for high quality output
+      const density = 300;
+      
+      // Create sharp instance with SVG input and high density
+      // Ensure transparent background is preserved
+      const sharpInstance = sharp(Buffer.from(svgString), { density, background: { r: 255, g: 255, b: 255, alpha: 0 } });
+      
+      // Resize to the desired size while maintaining aspect ratio
+      // Increase the size for better quality in PDF
+      sharpInstance.resize(size * 4);
+      
+      // Set output format and quality
+      if (outputFormat === 'jpeg') {
+        sharpInstance.jpeg({ quality: Math.round(quality * 100) });
+      } else {
+        sharpInstance.png();
       }
       
-      console.log('Running SVG conversion:', { scriptPath, pythonPath, args });
+      // Convert to buffer
+      const buffer = await sharpInstance.toBuffer();
       
-      // Spawn the Python process
-      const pythonProcess = spawn(pythonPath, args, {
-        stdio: ['pipe', 'pipe', 'pipe']
-      });
+      // Convert the buffer to a data URL
+      const mimeType = outputFormat === 'jpeg' ? 'image/jpeg' : 'image/png';
+      const dataUrl = `data:${mimeType};base64,${buffer.toString('base64')}`;
+      console.log('SVG conversion successful with sharp, data URL length:', dataUrl.length);
       
-      let stdout = '';
-      let stderr = '';
-      
-      pythonProcess.stdout.on('data', (data) => {
-        stdout += data.toString();
-      });
-      
-      pythonProcess.stderr.on('data', (data) => {
-        stderr += data.toString();
-      });
-      
-      pythonProcess.on('close', (code) => {
-        if (code === 0) {
-          try {
-            const result = JSON.parse(stdout);
-            if (result.success && result.data_url) {
-              // Validate the data URL format
-              if (result.data_url.startsWith('data:image/')) {
-                console.log('SVG conversion successful, data URL length:', result.data_url.length);
-                resolve(result.data_url);
-              } else {
-                reject(new Error('Invalid data URL format returned'));
-              }
-            } else {
-              reject(new Error(result.error || 'Conversion failed'));
-            }
-          } catch (parseError) {
-            console.error('Failed to parse Python output:', stdout);
-            reject(new Error('Failed to parse Python output'));
-          }
-        } else {
-          console.error('Python process failed:', { code, stderr, stdout });
-          reject(new Error(`Python process failed with code ${code}: ${stderr}`));
-        }
-      });
-      
-      pythonProcess.on('error', (error) => {
-        reject(new Error(`Failed to start Python process: ${error.message}`));
-      });
-      
-    } catch (error) {
-      reject(new Error(`SVG conversion setup failed: ${error}`));
+      return dataUrl;
+    } 
+    // If sharp is not available, continue without conversion
+    else {
+      console.log('Sharp not available, continuing without SVG conversion');
+      // Return the original SVG data URL
+      return svgDataUrl;
     }
-  });
+  } catch (error) {
+    console.error('SVG conversion failed:', error);
+    // Continue without conversion on error
+    return svgDataUrl;
+  }
+});
+
+// --- Test SVG Conversion ---
+ipcMain.handle('test-svg-conversion', async () => {
+  console.log('Testing SVG conversion with sharp...');
+  
+  // Simple test SVG
+  const testSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+    <circle cx="50" cy="50" r="40" stroke="black" stroke-width="3" fill="red" />
+    <text x="50" y="55" text-anchor="middle" fill="white" font-family="Arial" font-size="20">Test</text>
+  </svg>`;
+  
+  // Convert to data URL
+  const svgDataUrl = `data:image/svg+xml;base64,${Buffer.from(testSvg).toString('base64')}`;
+  
+  try {
+    // Create a mock event object
+    const mockEvent = {} as any;
+    
+    // Call the actual handler function directly
+    const result = await (async (event: any, args: any) => {
+      const { svgDataUrl, outputFormat = 'jpeg', size = 128, quality = 0.95 } = args;
+      
+      try {
+        // Validate input
+        if (!svgDataUrl || typeof svgDataUrl !== 'string') {
+          throw new Error('Invalid SVG data URL provided');
+        }
+        
+        // Extract the base64 part of the data URL
+        const base64Data = svgDataUrl.replace(/^data:image\/svg\+xml;base64,/, '');
+        
+        // Convert base64 to string
+        const svgString = Buffer.from(base64Data, 'base64').toString('utf-8');
+        
+        // Ensure sharp is loaded before proceeding
+        console.log('Ensuring sharp is loaded for test...');
+        const sharpAvailable = await ensureSharpLoaded();
+        console.log('Sharp availability for test:', sharpAvailable);
+        
+        // Try to use sharp for higher quality conversion
+        console.log('Checking for sharp availability in test:', !!sharp);
+        if (sharp) {
+          try {
+            console.log('Using sharp for SVG conversion with size:', size, 'format:', outputFormat);
+            
+            // Create sharp instance with SVG buffer and set density for higher quality (300 DPI)
+            // Ensure transparent background is preserved
+            const density = 300;
+            const sharpInstance = sharp(Buffer.from(svgString), { density, background: { r: 255, g: 255, b: 255, alpha: 0 } });
+            
+            // Apply resize with multiplier for better quality
+            const resizeMultiplier = 4; // Increased from 2 to 4 for better quality
+            sharpInstance.resize(size * resizeMultiplier);
+            
+            // Set output format and quality
+            if (outputFormat === 'jpeg') {
+              sharpInstance.jpeg({ quality: Math.round(quality * 100) });
+            } else {
+              sharpInstance.png();
+            }
+            
+            // Convert to buffer
+            const buffer = await sharpInstance.toBuffer();
+            
+            // Convert to data URL
+            const mimeType = outputFormat === 'png' ? 'image/png' : 'image/jpeg';
+            const dataUrl = `data:${mimeType};base64,${buffer.toString('base64')}`;
+            
+            console.log('Sharp conversion successful, data URL length:', dataUrl.length);
+            return dataUrl;
+          } catch (sharpError) {
+            console.error('Sharp conversion failed:', sharpError);
+          }
+        }
+        
+        // Fallback to svg2img if sharp is not available or failed
+        console.log('Falling back to svg2img for SVG conversion');
+        if (svg2img) {
+          try {
+            // Set up conversion options with transparency support
+            const options: any = {
+              format: outputFormat === 'jpeg' ? 'jpg' : outputFormat,
+              resvg: {
+                fitTo: {
+                  mode: 'width',
+                  value: size
+                },
+                // Preserve transparency by explicitly setting a transparent background
+                background: 'transparent'
+              }
+            };
+            
+            if (outputFormat !== 'jpeg' && quality !== undefined) {
+              // Quality is only applicable for JPEG format
+              options.quality = quality;
+            }
+            
+            // Convert the SVG to the desired format using svg2img
+            const buffer = await new Promise((resolve, reject) => {
+              svg2img(svgString, options, (error: any, buffer: any) => {
+                if (error) {
+                  reject(error);
+                  return;
+                }
+                resolve(buffer);
+              });
+            });
+            
+            // Convert to data URL
+            const mimeType = outputFormat === 'png' ? 'image/png' : 'image/jpeg';
+            const dataUrl = `data:${mimeType};base64,${(buffer as Buffer).toString('base64')}`;
+            
+            console.log('svg2img conversion successful, data URL length:', dataUrl.length);
+            return dataUrl;
+          } catch (svg2imgError) {
+            console.error('svg2img conversion failed:', svg2imgError);
+          }
+        }
+        
+        throw new Error('No SVG conversion method available');
+      } catch (error) {
+        console.error('SVG conversion failed:', error);
+        throw error;
+      }
+    })(mockEvent, {
+      svgDataUrl,
+      outputFormat: 'jpeg',
+      size: 128,
+      quality: 0.95
+    });
+    
+    console.log('Test SVG conversion result length:', result ? (result as string).length : 0);
+    console.log('Test SVG conversion successful:', !!result);
+    return { success: !!result, dataUrlLength: result ? (result as string).length : 0 };
+  } catch (error) {
+    console.error('Test SVG conversion failed:', error);
+    return { error: error.message };
+  }
 });
 
 // --- Update Check, Download, and Install ---
@@ -631,6 +908,58 @@ ipcMain.handle('download-update', async (event, url: string) => {
 ipcMain.handle('open-installer', async (event, filePath: string) => {
   await shell.openPath(filePath);
   return true;
+});
+
+// --- Camera Permission Handlers ---
+// Add these after the existing IPC handlers
+async function requestCameraPermission(): Promise<boolean> {
+  try {
+    // Check if we're on macOS
+    if (process.platform === 'darwin') {
+      const cameraStatus = systemPreferences.getMediaAccessStatus('camera');
+      
+      if (cameraStatus === 'granted') {
+        return true;
+      }
+      
+      // Request camera access on macOS
+      const granted = await systemPreferences.askForMediaAccess('camera');
+      return granted === true;
+    }
+    
+    // For Windows and Linux, permissions are typically handled by the OS
+    // and the browser will prompt the user when needed
+    return true;
+  } catch (error: any) {
+    console.error('Error requesting camera permission:', error);
+    // On error, we'll let the browser handle the permission request
+    return true;
+  }
+}
+
+// Add IPC handler for permission requests
+ipcMain.handle('request-camera-permission', async () => {
+  return await requestCameraPermission();
+});
+
+// Add IPC handler to open system settings for permissions
+ipcMain.handle('open-permission-settings', async () => {
+  try {
+    if (process.platform === 'darwin') {
+      // Open macOS privacy settings for camera
+      shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_Camera');
+    } else if (process.platform === 'win32') {
+      // Open Windows privacy settings for camera
+      shell.openExternal('ms-settings:privacy-webcam');
+    } else {
+      // For Linux, we can't directly open settings, but we can open a help page
+      shell.openExternal('https://help.ubuntu.com/community/Webcam');
+    }
+    return true;
+  } catch (error: any) {
+    console.error('Error opening permission settings:', error);
+    return false;
+  }
 });
 
 // --- Existing Electron Window Code ---

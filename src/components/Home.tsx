@@ -198,7 +198,7 @@ const Home: React.FC = () => {
         <div className="qb-subtitle">Manage elections offline with ease.</div>
       </header>
       {/* Floating Help and About Buttons */}
-      <div style={{ position: 'fixed', top: 28, right: 32, zIndex: 9990, display: 'flex', gap: 12 }}>
+      <div className="floating-buttons">
         <button
           className="support-btn"
           style={{
@@ -225,32 +225,32 @@ const Home: React.FC = () => {
           <span className="material-icons" style={{ fontSize: 18, color: supportHover ? '#fff' : '#e53935', transition: 'color 0.18s' }}>favorite</span>
           Support Creator
         </button>
-        <button
-          className="help-btn"
-          style={{
+      <button
+        className="help-btn"
+        style={{
             background: helpHover ? '#4f8cff' : '#232427',
-            border: '2px solid #4f8cff',
+          border: '2px solid #4f8cff',
             color: helpHover ? '#fff' : '#4f8cff',
             fontWeight: 600,
             fontSize: 15,
             borderRadius: 16,
-            boxShadow: '0 2px 12px #0004',
+          boxShadow: '0 2px 12px #0004',
             padding: '6px 14px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
             gap: 6,
             transition: 'background 0.18s, color 0.18s, transform 0.18s',
             transform: helpHover ? 'translateY(-2px)' : 'none',
-          }}
-          onClick={() => setShowHelp(true)}
-          aria-label="Open Help"
+        }}
+        onClick={() => setShowHelp(true)}
+        aria-label="Open Help"
           onMouseEnter={() => setHelpHover(true)}
           onMouseLeave={() => setHelpHover(false)}
-        >
+      >
           <span className="material-icons" style={{ fontSize: 18, color: helpHover ? '#fff' : '#4f8cff', transition: 'color 0.18s' }}>help_outline</span>
-          Help
-        </button>
+        Help
+      </button>
         <div style={{ position: 'relative' }}>
           <button
             className="about-btn"

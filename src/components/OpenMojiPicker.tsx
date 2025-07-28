@@ -6,6 +6,15 @@ const openmojiList: { hexcode: string; annotation: string }[] = (openmojiData as
   .filter(e => e.group !== 'Component')
   .map(e => ({ hexcode: e.hexcode, annotation: e.annotation }));
 
+// Utility function to get the correct asset path
+const getAssetPath = (path: string) => {
+  // Use import.meta.env.BASE_URL if available (Vite)
+  // Fallback to process.env.BASE_URL if available (Create React App)
+  // Otherwise use empty string for relative paths
+  const baseUrl = (import.meta as any).env?.BASE_URL || process.env.BASE_URL || '';
+  return `${baseUrl}${path}`;
+};
+
 interface OpenMojiPickerProps {
   onSelect: (pngPath: string, meta: { hexcode: string; annotation: string }) => void;
   onClose?: () => void;
@@ -80,10 +89,10 @@ const OpenMojiPicker: React.FC<OpenMojiPickerProps> = ({ onSelect, onClose }) =>
               cursor: 'pointer',
               transition: 'background 0.2s',
             }}
-            onClick={() => onSelect(`/openmoji/${emoji.hexcode.toUpperCase()}.png`, emoji)}
+            onClick={() => onSelect(getAssetPath(`openmoji/${emoji.hexcode.toUpperCase()}.png`), emoji)}
           >
             <img
-              src={`/openmoji/${emoji.hexcode.toUpperCase()}.png`}
+              src={getAssetPath(`openmoji/${emoji.hexcode.toUpperCase()}.png`)}
               alt={emoji.annotation}
               style={{ width: 36, height: 36, display: 'block', margin: '0 auto' }}
               loading="lazy"
