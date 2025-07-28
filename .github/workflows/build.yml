@@ -34,15 +34,33 @@ jobs:
         with:
           node-version: 18
           cache: 'npm'
-      - name: Install Windows build tools
-        run: npm install --global windows-build-tools
+      - name: Install Windows build dependencies
+        run: |
+          npm install --global --production windows-build-tools
+          npm install --global node-gyp
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install Windows dependencies for canvas
+        run: |
+          choco install -y python3
+          choco install -y gtk-runtime
+          choco install -y libjpeg-turbo
+          choco install -y giflib
+          choco install -y cmake
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm ci --platform=win32 --arch=ia32
+        env:
+          npm_config_arch: ia32
+          npm_config_platform: win32
       - name: Build Windows
         run: npm run electron:build -- --win
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           npm_config_arch: ia32
+          npm_config_platform: win32
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -57,6 +75,10 @@ jobs:
         with:
           node-version: 18
           cache: 'npm'
+      - name: Install system dependencies for canvas
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
       - name: Install dependencies
         run: npm ci
       - name: Build Linux
