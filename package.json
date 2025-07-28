@@ -114,7 +114,6 @@
     "bcryptjs": "^3.0.2",
     "better-sqlite3": "^12.2.0",
     "bootstrap": "^5.3.7",
-    "canvas": "^3.1.2",
     "chart.js": "^4.5.0",
     "emoji-picker-element": "^1.26.3",
     "jspdf": "^3.0.1",
