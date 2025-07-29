@@ -86,7 +86,8 @@
       "provider": "github",
       "owner": "AkshayAnuOnline",
       "repo": "QuickBallotBuild",
-      "releaseType": "release"
+      "releaseType": "release",
+      "vPrefixedTagName": true
     }
   ],
   "remoteBuild": false,
