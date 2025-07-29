@@ -25,7 +25,16 @@
   "nodeGypRebuild": true,
   "mac": {
     "category": "public.app-category.utilities",
-    "target": "dmg",
+    "target": [
+      {
+        "target": "dmg",
+        "arch": [
+          "x64",
+          "arm64"
+        ]
+      }
+    ],
+    "artifactName": "${productName}-${version}-${arch}.${ext}",
     "entitlements": "assets/entitlements.mac.plist",
     "entitlementsInherit": "assets/entitlements.mac.plist",
     "extendInfo": {
@@ -47,7 +56,8 @@
           "arm64"
         ]
       }
-    ]
+    ],
+    "artifactName": "${productName}-Setup-${version}-${arch}.${ext}"
   },
   "linux": {
     "target": [
@@ -68,6 +78,7 @@
         ]
       }
     ],
+    "artifactName": "${productName}-${version}-${arch}.${ext}",
     "category": "Utility"
   },
   "nsis": {
