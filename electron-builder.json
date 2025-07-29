@@ -33,10 +33,36 @@
     }
   },
   "win": {
-    "target": "nsis"
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "ia32",
+          "x64",
+          "arm64"
+        ]
+      }
+    ]
   },
   "linux": {
-    "target": "AppImage",
+    "target": [
+      {
+        "target": "AppImage",
+        "arch": [
+          "x64",
+          "arm64",
+          "armv7l"
+        ]
+      },
+      {
+        "target": "deb",
+        "arch": [
+          "x64",
+          "arm64",
+          "armv7l"
+        ]
+      }
+    ],
     "category": "Utility"
   },
   "nsis": {
