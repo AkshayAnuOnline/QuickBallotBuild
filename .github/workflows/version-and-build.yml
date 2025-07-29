@@ -6,7 +6,110 @@ on:
       - 'v*.*.*'  # Only run on version tags
 
 jobs:
-  version-and-build:
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          ref: main
+
+      - name: Extract version from tag
+        id: extract_version
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG_NAME#v}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update package.json version
+        run: |
+          npm version ${{ steps.extract_version.outputs.VERSION }} --no-git-tag-version
+
+      - name: Commit and push version update
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add package.json
+          git commit -m "Update version to ${{ steps.extract_version.outputs.VERSION }}"
+          git push origin HEAD:main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Build and Publish macOS
+        run: npm run electron:build -- --mac --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-installers
+          path: release/*.{dmg,zip}
+
+  build-win:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          ref: main
+
+      - name: Extract version from tag
+        id: extract_version
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG_NAME#v}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update package.json version
+        run: |
+          npm version ${{ steps.extract_version.outputs.VERSION }} --no-git-tag-version
+
+      - name: Commit and push version update
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add package.json
+          git commit -m "Update version to ${{ steps.extract_version.outputs.VERSION }}"
+          git push origin HEAD:main
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+      - name: Install Windows build dependencies
+        run: |
+          npm install --global --production windows-build-tools
+          npm install --global node-gyp
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install Windows dependencies for canvas
+        run: |
+          choco install -y python3
+          choco install -y gtk-runtime
+          choco install -y libjpeg-turbo
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm rebuild canvas --update-binary
+      - name: Build and Publish Windows
+        run: npm run electron:build -- --win --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installers
+          path: release/*.{exe,msi}
+
+  build-linux:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -34,67 +137,6 @@ jobs:
           git commit -m "Update version to ${{ steps.extract_version.outputs.VERSION }}"
           git push origin HEAD:main
 
-  build-mac:
-    needs: version-and-build
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 18
-          cache: 'npm'
-      - name: Install dependencies
-        run: npm ci
-      - name: Build and Publish macOS
-        run: npm run electron:build -- --mac --publish always
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-      - name: Upload macOS artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-installers
-          path: release/*.{dmg,zip}
-
-  build-win:
-    needs: version-and-build
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 18
-          cache: 'npm'
-      - name: Install Windows build dependencies
-        run: |
-          npm install --global --production windows-build-tools
-          npm install --global node-gyp
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-      - name: Install Windows dependencies for canvas
-        run: |
-          choco install -y python3
-          choco install -y gtk-runtime
-          choco install -y libjpeg-turbo
-          choco install -y giflib
-      - name: Install dependencies
-        run: npm ci
-      - name: Build and Publish Windows
-        run: npm run electron:build -- --win --publish always
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-      - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-installers
-          path: release/*.{exe,msi}
-
-  build-linux:
-    needs: version-and-build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 18
