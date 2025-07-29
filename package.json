@@ -86,7 +86,7 @@
     "build": "cross-env GENERATE_SOURCEMAP=false tsc && cross-env GENERATE_SOURCEMAP=false vite build",
     "preview": "vite preview",
     "electron:dev": "vite --mode development",
-    "electron:build": "npm run build && electron-builder",
+    "electron:build": "npm run build && electron-builder --publish always",
     "electron:preview": "npm run build && electron .",
     "clean:release": "rimraf 'release/*' '!release/*.dmg' '!release/*.exe' '!release/*.AppImage' && rimraf release/mac-*"
   },
