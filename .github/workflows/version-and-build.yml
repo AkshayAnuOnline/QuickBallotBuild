@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*.*.*'  # Only run on version tags
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name (e.g., v1.0.24)'
+        required: true
+        default: 'v1.0.24'
 
 jobs:
   update-version:
