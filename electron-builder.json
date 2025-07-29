@@ -81,7 +81,14 @@
     "differentialPackage": false
   },
   "generateUpdatesFilesForAllChannels": false,
-  "publish": null,
+  "publish": [
+    {
+      "provider": "github",
+      "owner": "AkshayAnuOnline",
+      "repo": "QuickBallotBuild",
+      "releaseType": "release"
+    }
+  ],
   "remoteBuild": false,
   "generateDifferentialAssets": false
 } 
