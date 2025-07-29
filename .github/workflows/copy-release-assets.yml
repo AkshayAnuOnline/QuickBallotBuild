@@ -24,6 +24,8 @@ jobs:
       - name: Get release information
         id: get_release
         run: |
+          echo "Getting release information for tag: ${{ github.event.inputs.release_tag }}"
+          
           if [ "${{ github.event.inputs.release_tag }}" = "latest" ]; then
             RELEASE_INFO=$(curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
               "https://api.github.com/repos/${{ github.repository }}/releases/latest")
@@ -32,15 +34,28 @@ jobs:
               "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.event.inputs.release_tag }}")
           fi
           
-          echo "release_info=$RELEASE_INFO" >> $GITHUB_OUTPUT
+          # Check if we got valid release info
+          if echo "$RELEASE_INFO" | jq -e .id >/dev/null 2>&1; then
+            echo "Successfully retrieved release information"
+          else
+            echo "Error: Failed to retrieve release information"
+            echo "Response: $RELEASE_INFO"
+            exit 1
+          fi
+          
           RELEASE_ID=$(echo $RELEASE_INFO | jq -r '.id')
-          echo "release_id=$RELEASE_ID" >> $GITHUB_OUTPUT
           RELEASE_TAG=$(echo $RELEASE_INFO | jq -r '.tag_name')
-          echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
           RELEASE_NAME=$(echo $RELEASE_INFO | jq -r '.name')
-          echo "release_name=$RELEASE_NAME" >> $GITHUB_OUTPUT
           RELEASE_BODY=$(echo $RELEASE_INFO | jq -r '.body')
+          
+          echo "release_id=$RELEASE_ID" >> $GITHUB_OUTPUT
+          echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
+          echo "release_name=$RELEASE_NAME" >> $GITHUB_OUTPUT
           echo "release_body=$RELEASE_BODY" >> $GITHUB_OUTPUT
+          
+          echo "Release ID: $RELEASE_ID"
+          echo "Release Tag: $RELEASE_TAG"
+          echo "Release Name: $RELEASE_NAME"
 
       - name: Download release assets
         run: |
@@ -49,7 +64,17 @@ jobs:
           
           # Get list of assets
           ASSETS_URL="https://api.github.com/repos/${{ github.repository }}/releases/${{ steps.get_release.outputs.release_id }}/assets"
+          echo "Fetching assets from: $ASSETS_URL"
           ASSET_LIST=$(curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" "$ASSETS_URL")
+          
+          # Check if we got valid asset list
+          if echo "$ASSET_LIST" | jq -e . >/dev/null 2>&1; then
+            echo "Successfully retrieved asset list"
+          else
+            echo "Error: Failed to retrieve asset list"
+            echo "Response: $ASSET_LIST"
+            exit 1
+          fi
           
           # Download each asset
           echo $ASSET_LIST | jq -c '.[]' | while read asset; do
@@ -66,27 +91,36 @@ jobs:
               echo "Skipping $ASSET_NAME (blockmap or yml file)"
             fi
           done
+          
+          echo "Downloaded assets:"
+          ls -la
 
       - name: Upload assets to public repository
         run: |
           cd assets
           
           # Determine target tag
-          if [ -n "${{ github.event.inputs.target_release_tag }}" ]; then
+          if [ -n "${{ github.event.inputs.target_release_tag }}" ] && [ "${{ github.event.inputs.target_release_tag }}" != "" ]; then
             TARGET_TAG="${{ github.event.inputs.target_release_tag }}"
           else
             TARGET_TAG="${{ steps.get_release.outputs.release_tag }}"
           fi
           
+          echo "Target tag for public repository: $TARGET_TAG"
+          
           # Create release in public repository if it doesn't exist
           PUBLIC_REPO="AkshayAnuOnline/quikballot"
           
           # Check if release already exists
+          echo "Checking if release $TARGET_TAG exists in $PUBLIC_REPO"
           RELEASE_EXISTS=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
             "https://api.github.com/repos/$PUBLIC_REPO/releases/tags/$TARGET_TAG")
           
+          echo "Release exists check returned HTTP status: $RELEASE_EXISTS"
+          
           if [ "$RELEASE_EXISTS" = "404" ]; then
+            echo "Creating new release $TARGET_TAG in $PUBLIC_REPO"
             # Create new release
             RELEASE_DATA=$(jq -n \
               --arg tag "$TARGET_TAG" \
@@ -94,29 +128,62 @@ jobs:
               --arg body "${{ steps.get_release.outputs.release_body }}" \
               '{tag_name: $tag, name: $name, body: $body, draft: false, prerelease: false}')
             
+            echo "Release data: $RELEASE_DATA"
+            
             RELEASE_RESPONSE=$(curl -s -X POST \
               -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
               -H "Content-Type: application/json" \
               -d "$RELEASE_DATA" \
               "https://api.github.com/repos/$PUBLIC_REPO/releases")
             
+            # Check if release creation was successful
+            if echo "$RELEASE_RESPONSE" | jq -e .id >/dev/null 2>&1; then
+              echo "Successfully created release"
+            else
+              echo "Error: Failed to create release"
+              echo "Response: $RELEASE_RESPONSE"
+              exit 1
+            fi
+            
             PUBLIC_RELEASE_ID=$(echo $RELEASE_RESPONSE | jq -r '.id')
+            echo "Created release with ID: $PUBLIC_RELEASE_ID"
           else
+            echo "Release $TARGET_TAG already exists, getting release ID"
             # Get existing release ID
             PUBLIC_RELEASE_INFO=$(curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
               "https://api.github.com/repos/$PUBLIC_REPO/releases/tags/$TARGET_TAG")
+            
+            # Check if we got valid release info
+            if echo "$PUBLIC_RELEASE_INFO" | jq -e .id >/dev/null 2>&1; then
+              echo "Successfully retrieved existing release information"
+            else
+              echo "Error: Failed to retrieve existing release information"
+              echo "Response: $PUBLIC_RELEASE_INFO"
+              exit 1
+            fi
+            
             PUBLIC_RELEASE_ID=$(echo $PUBLIC_RELEASE_INFO | jq -r '.id')
+            echo "Existing release ID: $PUBLIC_RELEASE_ID"
           fi
           
           # Upload each asset
+          echo "Uploading assets to public repository release $PUBLIC_RELEASE_ID"
           for file in *; do
             if [ -f "$file" ]; then
               echo "Uploading $file to public repository"
-              curl -s -X POST \
+              UPLOAD_RESPONSE=$(curl -s -X POST \
                 -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
                 -H "Content-Type: application/octet-stream" \
                 --data-binary @$file \
-                "https://uploads.github.com/repos/$PUBLIC_REPO/releases/$PUBLIC_RELEASE_ID/assets?name=$(basename $file)"
+                "https://uploads.github.com/repos/$PUBLIC_REPO/releases/$PUBLIC_RELEASE_ID/assets?name=$(basename $file)")
+              
+              # Check if upload was successful
+              if echo "$UPLOAD_RESPONSE" | jq -e .id >/dev/null 2>&1; then
+                echo "Successfully uploaded $file"
+              else
+                echo "Warning: Failed to upload $file"
+                echo "Response: $UPLOAD_RESPONSE"
+              fi
             fi
           done
           
