@@ -88,7 +88,7 @@
       "repo": "QuickBallotBuild",
       "releaseType": "release",
       "vPrefixedTagName": true,
-      "draft": false
+      "draft": true
     }
   ],
   "remoteBuild": false,
