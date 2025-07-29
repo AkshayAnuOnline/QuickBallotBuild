@@ -18,21 +18,13 @@ jobs:
   copy-assets:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source repository
-        uses: actions/checkout@v4
-
       - name: Get release information
         id: get_release
         run: |
           echo "Getting release information for tag: ${{ github.event.inputs.release_tag }}"
           
-          if [ "${{ github.event.inputs.release_tag }}" = "latest" ]; then
-            RELEASE_INFO=$(curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
-              "https://api.github.com/repos/${{ github.repository }}/releases/latest")
-          else
-            RELEASE_INFO=$(curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
-              "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.event.inputs.release_tag }}")
-          fi
+          RELEASE_INFO=$(curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.event.inputs.release_tag }}")
           
           # Check if we got valid release info
           if echo "$RELEASE_INFO" | jq -e .id >/dev/null 2>&1; then
@@ -57,12 +49,9 @@ jobs:
           echo "Release Tag: $RELEASE_TAG"
           echo "Release Name: $RELEASE_NAME"
 
-      - name: Download release assets
+      - name: Copy assets to public repository
         run: |
-          mkdir -p assets
-          cd assets
-          
-          # Get list of assets
+          # Get list of assets from source release
           ASSETS_URL="https://api.github.com/repos/${{ github.repository }}/releases/${{ steps.get_release.outputs.release_id }}/assets"
           echo "Fetching assets from: $ASSETS_URL"
           ASSET_LIST=$(curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" "$ASSETS_URL")
@@ -75,29 +64,6 @@ jobs:
             echo "Response: $ASSET_LIST"
             exit 1
           fi
-          
-          # Download each asset
-          echo $ASSET_LIST | jq -c '.[]' | while read asset; do
-            ASSET_NAME=$(echo $asset | jq -r '.name')
-            ASSET_URL=$(echo $asset | jq -r '.url')
-            
-            # Skip blockmap and yml files
-            if [[ ! "$ASSET_NAME" =~ \.(blockmap|yml)$ ]]; then
-              echo "Downloading $ASSET_NAME"
-              curl -L -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
-                -H "Accept: application/octet-stream" \
-                "$ASSET_URL" -o "$ASSET_NAME"
-            else
-              echo "Skipping $ASSET_NAME (blockmap or yml file)"
-            fi
-          done
-          
-          echo "Downloaded assets:"
-          ls -la
-
-      - name: Upload assets to public repository
-        run: |
-          cd assets
           
           # Determine target tag
           if [ -n "${{ github.event.inputs.target_release_tag }}" ] && [ "${{ github.event.inputs.target_release_tag }}" != "" ]; then
@@ -127,8 +93,6 @@ jobs:
               --arg name "${{ steps.get_release.outputs.release_name }}" \
               --arg body "${{ steps.get_release.outputs.release_body }}" \
               '{tag_name: $tag, name: $name, body: $body, draft: false, prerelease: false}')
-            
-            echo "Release data: $RELEASE_DATA"
             
             RELEASE_RESPONSE=$(curl -s -X POST \
               -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
@@ -166,24 +130,29 @@ jobs:
             echo "Existing release ID: $PUBLIC_RELEASE_ID"
           fi
           
-          # Upload each asset
-          echo "Uploading assets to public repository release $PUBLIC_RELEASE_ID"
-          for file in *; do
-            if [ -f "$file" ]; then
-              echo "Uploading $file to public repository"
-              UPLOAD_RESPONSE=$(curl -s -X POST \
+          # Copy each asset directly from source to destination
+          echo "Copying assets to public repository release $PUBLIC_RELEASE_ID"
+          echo $ASSET_LIST | jq -c '.[]' | while read asset; do
+            ASSET_NAME=$(echo $asset | jq -r '.name')
+            ASSET_URL=$(echo $asset | jq -r '.url')
+            
+            # Skip blockmap and yml files
+            if [[ ! "$ASSET_NAME" =~ \.(blockmap|yml)$ ]]; then
+              echo "Copying $ASSET_NAME to public repository"
+              
+              # Stream asset directly from source to destination without saving to disk
+              curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+                -H "Accept: application/octet-stream" \
+                "$ASSET_URL" | \
+              curl -s -X POST \
                 -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
                 -H "Content-Type: application/octet-stream" \
-                --data-binary @$file \
-                "https://uploads.github.com/repos/$PUBLIC_REPO/releases/$PUBLIC_RELEASE_ID/assets?name=$(basename $file)")
+                --data-binary @- \
+                "https://uploads.github.com/repos/$PUBLIC_REPO/releases/$PUBLIC_RELEASE_ID/assets?name=$ASSET_NAME" > /dev/null
               
-              # Check if upload was successful
-              if echo "$UPLOAD_RESPONSE" | jq -e .id >/dev/null 2>&1; then
-                echo "Successfully uploaded $file"
-              else
-                echo "Warning: Failed to upload $file"
-                echo "Response: $UPLOAD_RESPONSE"
-              fi
+              echo "Successfully copied $ASSET_NAME"
+            else
+              echo "Skipping $ASSET_NAME (blockmap or yml file)"
             fi
           done
           
