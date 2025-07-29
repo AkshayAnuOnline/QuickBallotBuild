@@ -134,8 +134,10 @@ jobs:
             echo "Existing release ID: $PUBLIC_RELEASE_ID"
           fi
           
-          # Copy each asset directly from source to destination
+          # Copy each asset by downloading first and then uploading
           echo "Copying assets to public repository release $PUBLIC_RELEASE_ID"
+          mkdir -p /tmp/assets
+          
           echo $ASSET_LIST | jq -c '.[]' | while read asset; do
             ASSET_NAME=$(echo $asset | jq -r '.name')
             ASSET_URL=$(echo $asset | jq -r '.url')
@@ -144,20 +146,28 @@ jobs:
             if [[ ! "$ASSET_NAME" =~ \.(blockmap|yml)$ ]]; then
               echo "Copying $ASSET_NAME to public repository"
               
-              # Stream asset directly from source to destination without saving to disk
-              curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+              # Download asset to temporary file
+              curl -s -L -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
                 -H "Accept: application/octet-stream" \
-                "$ASSET_URL" | \
+                "$ASSET_URL" -o "/tmp/assets/$ASSET_NAME"
+              
+              # Upload asset to public repository
               curl -s -X POST \
                 -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
                 -H "Content-Type: application/octet-stream" \
-                --data-binary @- \
+                --data-binary @"/tmp/assets/$ASSET_NAME" \
                 "https://uploads.github.com/repos/$PUBLIC_REPO/releases/$PUBLIC_RELEASE_ID/assets?name=$ASSET_NAME" > /dev/null
+              
+              # Clean up temporary file
+              rm "/tmp/assets/$ASSET_NAME"
               
               echo "Successfully copied $ASSET_NAME"
             else
               echo "Skipping $ASSET_NAME (blockmap or yml file)"
             fi
           done
+          
+          # Clean up assets directory
+          rm -rf /tmp/assets
           
           echo "Assets copied successfully to public repository release $TARGET_TAG"
