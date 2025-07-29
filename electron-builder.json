@@ -87,7 +87,8 @@
       "owner": "AkshayAnuOnline",
       "repo": "QuickBallotBuild",
       "releaseType": "release",
-      "vPrefixedTagName": true
+      "vPrefixedTagName": true,
+      "draft": false
     }
   ],
   "remoteBuild": false,
