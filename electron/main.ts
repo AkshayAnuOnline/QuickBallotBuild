@@ -849,8 +849,7 @@ ipcMain.handle('test-svg-conversion', async () => {
 });
 
 // --- Update Check, Download, and Install ---
-const LATEST_JSON_URL = 'https://github.com/AkshayAnuOnline/quikballot/releases/download/v1.0.0/latest.json'; // Update this for each release
-const DOWNLOAD_DIR = app.getPath('temp');
+const LATEST_JSON_URL = 'https://github.com/AkshayAnuOnline/quikballot/releases/latest/download/latest.json';
 
 ipcMain.handle('check-for-update', async (event, currentVersion: string, platform: string) => {
   return new Promise((resolve, reject) => {
@@ -861,11 +860,7 @@ ipcMain.handle('check-for-update', async (event, currentVersion: string, platfor
         try {
           const json = JSON.parse(data);
           if (json.version && json.version !== currentVersion) {
-            let url = '';
-            if (platform === 'darwin') url = json.mac;
-            else if (platform === 'win32') url = json.win;
-            else if (platform === 'linux') url = json.linux;
-            resolve({ updateAvailable: true, version: json.version, url });
+            resolve({ updateAvailable: true, version: json.version });
           } else {
             resolve({ updateAvailable: false });
           }
@@ -885,28 +880,8 @@ ipcMain.handle('check-for-update', async (event, currentVersion: string, platfor
   });
 });
 
-ipcMain.handle('download-update', async (event, url: string) => {
-  return new Promise((resolve, reject) => {
-    const fileName = url.split('/').pop() || 'update';
-    const filePath = path.join(DOWNLOAD_DIR, fileName);
-    const file = fs.createWriteStream(filePath);
-    https.get(url, (res) => {
-      res.pipe(file);
-      file.on('finish', () => {
-        file.close(() => resolve({ filePath }));
-      });
-    }).on('error', (err) => {
-      fs.unlink(filePath, () => {});
-      if (typeof err === 'object' && err !== null && 'message' in (err as any)) {
-        console.error('Download update error:', (err as any).message);
-      }
-      reject(err);
-    });
-  });
-});
-
-ipcMain.handle('open-installer', async (event, filePath: string) => {
-  await shell.openPath(filePath);
+ipcMain.handle('open-website', async (event, url: string) => {
+  await shell.openExternal(url);
   return true;
 });
 

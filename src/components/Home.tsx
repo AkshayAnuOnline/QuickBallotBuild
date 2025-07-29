@@ -16,7 +16,6 @@ const Home: React.FC = () => {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [orgToOpen, setOrgToOpen] = useState<any | null>(null);
@@ -34,11 +33,8 @@ const Home: React.FC = () => {
   const location = useLocation();
   const [showHelp, setShowHelp] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
-  const [updateInfo, setUpdateInfo] = useState<{ updateAvailable: boolean, version?: string, url?: string } | null>(null);
-  const [updateDownloaded, setUpdateDownloaded] = useState<{ filePath: string } | null>(null);
-  const [downloading, setDownloading] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
-  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [updateInfo, setUpdateInfo] = useState<{ updateAvailable: boolean, version?: string } | null>(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showUpdateBadge, setShowUpdateBadge] = useState(true);
   const [supportHover, setSupportHover] = useState(false);
@@ -73,50 +69,15 @@ const Home: React.FC = () => {
     }
   }, [showAbout]);
 
-  // Handler for download update with progress and error
-  const handleDownloadUpdate = async () => {
-    if (!updateInfo?.url) return;
-    setDownloading(true);
-    setDownloadProgress(0);
-    setDownloadError(null);
-    setUpdateDownloaded(null);
-    try {
-      // Use fetch for progress (Node.js fetch polyfill or Electron context)
-      const res = await fetch(updateInfo.url);
-      if (!res.body) throw new Error('No response body');
-      const contentLength = res.headers.get('content-length');
-      const total = contentLength ? parseInt(contentLength, 10) : 0;
-      let loaded = 0;
-      const reader = res.body.getReader();
-      const chunks = [];
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (value) {
-          chunks.push(value);
-          loaded += value.length;
-          if (total) setDownloadProgress(Math.round((loaded / total) * 100));
-        }
-      }
-      // Save file to temp via IPC
-      const blob = new Blob(chunks);
-      const arrayBuffer = await blob.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-      const fileRes = await ipc.invoke('save-update-file', { data: Array.from(uint8Array), fileName: updateInfo.url.split('/').pop() });
-      setUpdateDownloaded(fileRes);
-      setDownloadProgress(100);
-    } catch (e: any) {
-      setDownloadError(e.message || 'Download failed');
-      setUpdateDownloaded(null);
-    }
-    setDownloading(false);
+  // Handler to open releases page
+  const handleOpenReleases = async () => {
+    await ipc.invoke('open-website', 'https://github.com/AkshayAnuOnline/quikballot/releases');
   };
 
-  // Handler for install update
-  const handleInstallUpdate = async () => {
-    if (!updateDownloaded?.filePath) return;
-    await ipc.invoke('open-installer', updateDownloaded.filePath);
-    setShowUpdateBadge(false); // Clear badge after install
+  // Handler for update notification click
+  const handleUpdateClick = async () => {
+    await ipc.invoke('open-website', 'https://github.com/AkshayAnuOnline/quikballot/releases');
+    setShowUpdateBadge(false); // Clear badge after clicking
   };
 
   useEffect(() => {
@@ -280,7 +241,7 @@ const Home: React.FC = () => {
           </button>
           {updateInfo?.updateAvailable && showUpdateBadge && (
             <button
-              onClick={() => setShowUpdateModal(true)}
+              onClick={handleUpdateClick}
               style={{
                 position: 'absolute',
                 top: -10,
@@ -742,57 +703,17 @@ const Home: React.FC = () => {
                 <div style={{ fontSize: 16, color: '#7faaff', fontWeight: 600, marginBottom: 0 }}>Managed by BuildMelon</div>
                 {updateInfo?.updateAvailable && (
                   <div style={{ marginTop: 24, width: '100%', textAlign: 'center' }}>
-                    {downloadError && (
-                      <div style={{ color: '#ffb0b0', marginBottom: 10 }}>{downloadError}</div>
-                    )}
-                    {!updateDownloaded ? (
-                      <>
-                        <button
-                          onClick={handleDownloadUpdate}
-                          disabled={downloading}
-                          style={{
-                            background: '#4f8cff',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: 8,
-                            fontWeight: 700,
-                            fontSize: 17,
-                            padding: '10px 32px',
-                            cursor: downloading ? 'not-allowed' : 'pointer',
-                            boxShadow: '0 2px 8px #0003',
-                            marginBottom: 0
-                          }}
-                        >
-                          {downloading ? 'Downloading...' : `Download v${updateInfo.version}`}
-                        </button>
-                        {downloading && downloadProgress !== null && (
-                          <div style={{ marginTop: 10, width: '80%', marginLeft: '10%' }}>
-                            <div style={{ height: 8, background: '#232b45', borderRadius: 4, overflow: 'hidden' }}>
-                              <div style={{ width: `${downloadProgress}%`, height: 8, background: '#4f8cff', borderRadius: 4, transition: 'width 0.3s' }} />
-                            </div>
-                            <div style={{ fontSize: 13, color: '#b0b8ff', marginTop: 2 }}>{downloadProgress}%</div>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <button
-                        onClick={handleInstallUpdate}
-                        style={{
-                          background: '#ffb300',
-                          color: '#222',
-                          border: 'none',
-                          borderRadius: 8,
-                          fontWeight: 700,
-                          fontSize: 17,
-                          padding: '10px 32px',
-                          cursor: 'pointer',
-                          boxShadow: '0 2px 8px #0003',
-                          marginBottom: 0
-                        }}
-                      >
-                        Install Update
-                      </button>
-                    )}
+                    <div style={{ fontSize: 18, marginBottom: 8 }}>Version {updateInfo.version} is available.</div>
+                    <div style={{ marginBottom: 20, color: '#666' }}>
+                      A new version of QuickBallot is available. Click below to go to our releases page to download the latest version.
+                    </div>
+                    <button
+                      className="add-org-button"
+                      onClick={handleOpenReleases}
+                      style={{ width: '100%', padding: '12px 0', fontSize: 16, marginBottom: 12 }}
+                    >
+                      Go to Releases Page
+                    </button>
                   </div>
                 )}
               </div>
@@ -812,57 +733,17 @@ const Home: React.FC = () => {
                 <div style={{ fontWeight: 700, fontSize: 22, marginBottom: 8, color: '#4f8cff' }}>Update Available</div>
                 <div style={{ fontSize: 18, marginBottom: 8 }}>Version {updateInfo.version} is available.</div>
                 <div style={{ fontSize: 16, color: '#b0b8ff', marginBottom: 16 }}>You are currently on v{CURRENT_VERSION}.</div>
-                {downloadError && (
-                  <div style={{ color: '#ffb0b0', marginBottom: 10 }}>{downloadError}</div>
-                )}
-                {!updateDownloaded ? (
-                  <>
-                    <button
-                      onClick={handleDownloadUpdate}
-                      disabled={downloading}
-                      style={{
-                        background: '#4f8cff',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: 8,
-                        fontWeight: 700,
-                        fontSize: 17,
-                        padding: '10px 32px',
-                        cursor: downloading ? 'not-allowed' : 'pointer',
-                        boxShadow: '0 2px 8px #0003',
-                        marginBottom: 0
-                      }}
-                    >
-                      {downloading ? 'Downloading...' : `Download v${updateInfo.version}`}
-                    </button>
-                    {downloading && downloadProgress !== null && (
-                      <div style={{ marginTop: 10, width: '80%', marginLeft: '10%' }}>
-                        <div style={{ height: 8, background: '#232b45', borderRadius: 4, overflow: 'hidden' }}>
-                          <div style={{ width: `${downloadProgress}%`, height: 8, background: '#4f8cff', borderRadius: 4, transition: 'width 0.3s' }} />
-                        </div>
-                        <div style={{ fontSize: 13, color: '#b0b8ff', marginTop: 2 }}>{downloadProgress}%</div>
-                      </div>
-                    )}
-                  </>
-                ) : (
+                <div style={{ padding: '16px 0' }}>
+                  <div style={{ marginBottom: 12, fontWeight: 600 }}>Update Available</div>
+                  <div style={{ marginBottom: 16 }}>Version {updateInfo.version} is available. Click below to download from our releases page.</div>
                   <button
-                    onClick={handleInstallUpdate}
-                    style={{
-                      background: '#ffb300',
-                      color: '#222',
-                      border: 'none',
-                      borderRadius: 8,
-                      fontWeight: 700,
-                      fontSize: 17,
-                      padding: '10px 32px',
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 8px #0003',
-                      marginBottom: 0
-                    }}
+                    className="add-org-button"
+                    onClick={handleOpenReleases}
+                    style={{ width: '100%', padding: '12px 0', fontSize: 16, boxShadow: '0 2px 8px #0003', marginBottom: 0 }}
                   >
-                    Install Update
+                    Go to Releases Page
                   </button>
-                )}
+                </div>
               </div>
             </div>
           </div>

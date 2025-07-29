@@ -1,0 +1,6 @@
+{
+  "version": "1.0.0",
+  "mac": "https://github.com/AkshayAnuOnline/quickballot/releases/download/v1.0.0/QuickBallot-1.0.0.dmg",
+  "win": "https://github.com/AkshayAnuOnline/quickballot/releases/download/v1.0.0/QuickBallot-1.0.0.exe",
+  "linux": "https://github.com/AkshayAnuOnline/quickballot/releases/download/v1.0.0/QuickBallot-1.0.0.AppImage"
+}

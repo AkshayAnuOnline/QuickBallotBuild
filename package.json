@@ -72,7 +72,14 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "AkshayAnuOnline",
+        "repo": "quickballot"
+      }
+    ]
   },
   "scripts": {
     "dev": "vite",
