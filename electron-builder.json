@@ -49,12 +49,6 @@
           "ia32",
           "x64"
         ]
-      },
-      {
-        "target": "zip",
-        "arch": [
-          "arm64"
-        ]
       }
     ],
     "artifactName": "${productName}-Setup-${version}-${arch}.${ext}"
