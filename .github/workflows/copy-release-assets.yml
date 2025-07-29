@@ -23,15 +23,19 @@ jobs:
         run: |
           echo "Getting release information for tag: ${{ github.event.inputs.release_tag }}"
           
-          RELEASE_INFO=$(curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.event.inputs.release_tag }}")
+          # Get all releases and filter by tag (to include draft releases)
+          ALL_RELEASES=$(curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases?per_page=100")
+          
+          # Filter for the specific tag
+          RELEASE_INFO=$(echo "$ALL_RELEASES" | jq -r --arg TAG "${{ github.event.inputs.release_tag }}" '.[] | select(.tag_name == $TAG) | .')
           
           # Check if we got valid release info
           if echo "$RELEASE_INFO" | jq -e .id >/dev/null 2>&1; then
             echo "Successfully retrieved release information"
           else
-            echo "Error: Failed to retrieve release information"
-            echo "Response: $RELEASE_INFO"
+            echo "Error: Failed to retrieve release information for tag ${{ github.event.inputs.release_tag }}"
+            echo "Response: $ALL_RELEASES"
             exit 1
           fi
           
