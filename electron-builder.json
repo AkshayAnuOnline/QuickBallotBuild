@@ -88,7 +88,8 @@
       "repo": "QuickBallotBuild",
       "releaseType": "release",
       "vPrefixedTagName": true,
-      "draft": true
+      "draft": true,
+      "token": "${GH_TOKEN}"
     }
   ],
   "remoteBuild": false,

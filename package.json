@@ -1,6 +1,6 @@
 {
   "name": "quickballot",
-  "version": "1.0.30",
+  "version": "1.0.31",
   "description": "Offline Election Management System",
   "main": "dist-electron/main.js",
   "homepage": "./",
@@ -86,7 +86,8 @@
     "build": "cross-env GENERATE_SOURCEMAP=false tsc && cross-env GENERATE_SOURCEMAP=false vite build",
     "preview": "vite preview",
     "electron:dev": "vite --mode development",
-    "electron:build": "npm run build && electron-builder --publish always",
+    "electron:build": "npm run build && electron-builder",
+    "electron:publish": "npm run build && electron-builder --publish always",
     "electron:preview": "npm run build && electron .",
     "clean:release": "rimraf 'release/*' '!release/*.dmg' '!release/*.exe' '!release/*.AppImage' && rimraf release/mac-*"
   },

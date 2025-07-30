@@ -63,7 +63,19 @@ jobs:
         run: npm ci
 
       - name: Build and Publish macOS
-        run: npm run electron:build -- --mac --publish always
+        run: |
+          npm run electron:publish -- --mac
+          echo "Build completed. Checking for release creation..."
+          sleep 30  # Wait for release to be created
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Verify release creation
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          echo "Checking for release with tag: $TAG_NAME"
+          curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG_NAME" | jq -r '.id, .tag_name, .draft'
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
@@ -111,7 +123,19 @@ jobs:
           npm rebuild canvas --update-binary
 
       - name: Build and Publish Windows
-        run: npm run electron:build -- --win --publish always
+        run: |
+          npm run electron:publish -- --win
+          echo "Build completed. Checking for release creation..."
+          sleep 30  # Wait for release to be created
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Verify release creation
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          echo "Checking for release with tag: $TAG_NAME"
+          curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG_NAME" | jq -r '.id, .tag_name, .draft'
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
@@ -141,7 +165,19 @@ jobs:
         run: npm ci
 
       - name: Build and Publish Linux
-        run: npm run electron:build -- --linux --publish always
+        run: |
+          npm run electron:publish -- --linux
+          echo "Build completed. Checking for release creation..."
+          sleep 30  # Wait for release to be created
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Verify release creation
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          echo "Checking for release with tag: $TAG_NAME"
+          curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG_NAME" | jq -r '.id, .tag_name, .draft'
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
@@ -149,4 +185,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: linux-installers
-          path: release/*.{AppImage,deb}
+          path: |
+            release/*.AppImage
+            release/*.deb

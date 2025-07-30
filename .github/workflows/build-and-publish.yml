@@ -1,20 +1,19 @@
-name: Copy Release Assets to Public Repository
+name: Build and Publish Electron App
 
-# This workflow can be manually triggered to copy release assets from this private repository
-# to the public repository for distribution
+# This workflow builds the Electron app and publishes installers to the public repository
 
 on:
+  push:
+    tags:
+      - 'v*.*.*'  # Only run on version tags
   workflow_dispatch:
     inputs:
-      release_tag:
-        description: 'Tag of the release to copy assets from (e.g., v1.0.14)'
+      tag_name:
+        description: 'Tag name (e.g., v1.0.24)'
         required: true
-        default: 'v1.0.14'
-      target_release_tag:
-        description: 'Tag to use for the release in the public repository (leave empty to use same tag)'
-        required: false
-      create_release_if_missing:
-        description: 'Create release in public repo if it does not exist'
+        default: 'v1.0.24'
+      publish_to_public:
+        description: 'Publish to public repository'
         required: false
         default: 'true'
         type: choice
@@ -23,26 +22,132 @@ on:
         - 'false'
 
 jobs:
-  copy-assets:
-    runs-on: ubuntu-latest
+  build-and-publish:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+        include:
+          - os: macos-latest
+            name: macOS
+            artifact_path: release/*.{dmg,zip}
+          - os: ubuntu-latest
+            name: Linux
+            artifact_path: |
+              release/*.AppImage
+              release/*.deb
+          - os: windows-latest
+            name: Windows
+            artifact_path: release/*.{exe,msi}
+    
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+          ref: ${{ github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install OS-specific dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          npm install --global --production windows-build-tools
+          npm install --global node-gyp
+
+      - name: Set up Python (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Windows dependencies for canvas (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          choco install -y python3
+          choco install -y gtk-runtime
+          choco install -y libjpeg-turbo
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            npm rebuild canvas --update-binary
+          fi
+
+      - name: Build and Publish ${{ matrix.name }}
+        run: |
+          # Determine platform flag
+          if [ "${{ matrix.os }}" = "macos-latest" ]; then
+            PLATFORM_FLAG="--mac"
+          elif [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            PLATFORM_FLAG="--linux"
+          elif [ "${{ matrix.os }}" = "windows-latest" ]; then
+            PLATFORM_FLAG="--win"
+          fi
+          
+          npm run electron:build -- $PLATFORM_FLAG --publish always
+          echo "Build completed for ${{ matrix.name }}. Checking for release creation..."
+          sleep 30  # Wait for release to be created
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Verify release creation
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          echo "Checking for release with tag: $TAG_NAME"
+          curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG_NAME" | jq -r '.id, .tag_name, .draft'
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Upload ${{ matrix.name }} artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}-installers
+          path: ${{ matrix.artifact_path }}
+
+  copy-to-public-repo:
+    needs: build-and-publish
+    runs-on: ubuntu-latest
+    if: github.event.inputs.publish_to_public != 'false'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+
+      - name: Wait for all builds to complete
+        run: |
+          echo "Waiting for all builds to complete and releases to be created..."
+          sleep 120  # Wait for 2 minutes to ensure all releases are created
+
       - name: Get release information
         id: get_release
         run: |
-          echo "Getting release information for tag: ${{ github.event.inputs.release_tag }}"
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          if [ -z "$TAG_NAME" ] || [ "$TAG_NAME" = "refs/tags/" ]; then
+            TAG_NAME=${{ github.event.inputs.tag_name }}
+          fi
+          
+          echo "Getting release information for tag: $TAG_NAME"
           
           # Get all releases and filter by tag (to include draft releases)
           ALL_RELEASES=$(curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/releases?per_page=100")
           
           # Filter for the specific tag
-          RELEASE_INFO=$(echo "$ALL_RELEASES" | jq -r --arg TAG "${{ github.event.inputs.release_tag }}" '.[] | select(.tag_name == $TAG) | .')
+          RELEASE_INFO=$(echo "$ALL_RELEASES" | jq -r --arg TAG "$TAG_NAME" '.[] | select(.tag_name == $TAG) | .')
           
           # Check if we got valid release info
           if echo "$RELEASE_INFO" | jq -e .id >/dev/null 2>&1; then
             echo "Successfully retrieved release information"
           else
-            echo "Error: Failed to retrieve release information for tag ${{ github.event.inputs.release_tag }}"
+            echo "Error: Failed to retrieve release information for tag $TAG_NAME"
             echo "Response: $ALL_RELEASES"
             exit 1
           fi
@@ -66,9 +171,16 @@ jobs:
           curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets" | \
             jq -r '.[] | "- \(.name) (\(.size) bytes)"'
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Copy assets to public repository
         run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          if [ -z "$TAG_NAME" ] || [ "$TAG_NAME" = "refs/tags/" ]; then
+            TAG_NAME=${{ github.event.inputs.tag_name }}
+          fi
+          
           # Get list of assets from source release
           ASSETS_URL="https://api.github.com/repos/${{ github.repository }}/releases/${{ steps.get_release.outputs.release_id }}/assets"
           echo "Fetching assets from: $ASSETS_URL"
@@ -84,11 +196,7 @@ jobs:
           fi
           
           # Determine target tag
-          if [ -n "${{ github.event.inputs.target_release_tag }}" ] && [ "${{ github.event.inputs.target_release_tag }}" != "" ]; then
-            TARGET_TAG="${{ github.event.inputs.target_release_tag }}"
-          else
-            TARGET_TAG="${{ steps.get_release.outputs.release_tag }}"
-          fi
+          TARGET_TAG="$TAG_NAME"
           
           echo "Target tag for public repository: $TARGET_TAG"
           
@@ -103,40 +211,32 @@ jobs:
           
           echo "Release exists check returned HTTP status: $RELEASE_EXISTS"
           
-          # Check if we should create the release if it doesn't exist
-          CREATE_RELEASE=${{ github.event.inputs.create_release_if_missing }}
-          
           if [ "$RELEASE_EXISTS" = "404" ]; then
-            if [ "$CREATE_RELEASE" = "true" ]; then
-              echo "Creating new release $TARGET_TAG in $PUBLIC_REPO"
-              # Create new release
-              RELEASE_DATA=$(jq -n \
-                --arg tag "$TARGET_TAG" \
-                --arg name "${{ steps.get_release.outputs.release_name }}" \
-                --arg body "${{ steps.get_release.outputs.release_body }}" \
-                '{tag_name: $tag, name: $name, body: $body, draft: false, prerelease: false}')
-              
-              RELEASE_RESPONSE=$(curl -s -X POST \
-                -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
-                -H "Content-Type: application/json" \
-                -d "$RELEASE_DATA" \
-                "https://api.github.com/repos/$PUBLIC_REPO/releases")
-              
-              # Check if release creation was successful
-              if echo "$RELEASE_RESPONSE" | jq -e .id >/dev/null 2>&1; then
-                echo "Successfully created release"
-              else
-                echo "Error: Failed to create release"
-                echo "Response: $RELEASE_RESPONSE"
-                exit 1
-              fi
-              
-              PUBLIC_RELEASE_ID=$(echo $RELEASE_RESPONSE | jq -r '.id')
-              echo "Created release with ID: $PUBLIC_RELEASE_ID"
+            echo "Creating new release $TARGET_TAG in $PUBLIC_REPO"
+            # Create new release
+            RELEASE_DATA=$(jq -n \
+              --arg tag "$TARGET_TAG" \
+              --arg name "${{ steps.get_release.outputs.release_name }}" \
+              --arg body "${{ steps.get_release.outputs.release_body }}" \
+              '{tag_name: $tag, name: $name, body: $body, draft: false, prerelease: false}')
+            
+            RELEASE_RESPONSE=$(curl -s -X POST \
+              -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              -d "$RELEASE_DATA" \
+              "https://api.github.com/repos/$PUBLIC_REPO/releases")
+            
+            # Check if release creation was successful
+            if echo "$RELEASE_RESPONSE" | jq -e .id >/dev/null 2>&1; then
+              echo "Successfully created release"
             else
-              echo "Release $TARGET_TAG does not exist and create_release_if_missing is false. Exiting."
+              echo "Error: Failed to create release"
+              echo "Response: $RELEASE_RESPONSE"
               exit 1
             fi
+            
+            PUBLIC_RELEASE_ID=$(echo $RELEASE_RESPONSE | jq -r '.id')
+            echo "Created release with ID: $PUBLIC_RELEASE_ID"
           else
             echo "Release $TARGET_TAG already exists, getting release ID"
             # Get existing release ID
@@ -204,13 +304,6 @@ jobs:
             fi
           done
           
-          echo "Finished copying assets. Total installer files copied: $COPIED_ASSETS"              echo "Successfully copied $ASSET_NAME"
-            else
-              echo "Skipping $ASSET_NAME (blockmap or yml file)"
-            fi
-          done
-          
-          # Clean up assets directory
-          rm -rf /tmp/assets
-          
-          echo "Assets copied successfully to public repository release $TARGET_TAG"
+          echo "Finished copying assets. Total installer files copied: $COPIED_ASSETS"
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
