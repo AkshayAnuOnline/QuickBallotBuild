@@ -129,48 +129,49 @@ jobs:
       - name: Get release information
         id: get_release
         run: |
-          # Use PowerShell for cross-platform compatibility
-          $TAG_NAME = "${{ github.ref }}".Replace("refs/tags/", "")
-          if ([string]::IsNullOrEmpty($TAG_NAME) -or $TAG_NAME -eq "refs/tags/") {
-            $TAG_NAME = "${{ github.event.inputs.tag_name }}"
-          }
+          # Extract tag name from github.ref or use input tag_name
+          if [[ "${{ github.ref }}" == "refs/tags/*" ]]; then
+            TAG_NAME="${{ github.ref }}"
+            TAG_NAME=${TAG_NAME#refs/tags/}
+          else
+            TAG_NAME="${{ github.event.inputs.tag_name }}"
+          fi
           
           echo "Getting release information for tag: $TAG_NAME"
           
           # Get all releases and filter by tag (to include draft releases)
-          $ALL_RELEASES = curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases?per_page=100"
+          ALL_RELEASES=$(curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases?per_page=100")
           
           # Filter for the specific tag
-          $RELEASE_INFO = $ALL_RELEASES | jq -r --arg TAG "$TAG_NAME" '.[] | select(.tag_name == $TAG) | .'
+          RELEASE_INFO=$(echo "$ALL_RELEASES" | jq -r --arg TAG "$TAG_NAME" '.[] | select(.tag_name == $TAG) | .')
           
           # Check if we got valid release info
-          if ($RELEASE_INFO | jq -e .id 2>$null) {
+          if echo "$RELEASE_INFO" | jq -e .id &>/dev/null; then
             echo "Successfully retrieved release information"
-          } else {
+          else
             echo "Error: Failed to retrieve release information for tag $TAG_NAME"
             echo "Response: $ALL_RELEASES"
             exit 1
-          }
+          fi
           
-          $RELEASE_ID = $RELEASE_INFO | jq -r '.id'
-          $RELEASE_TAG = $RELEASE_INFO | jq -r '.tag_name'
-          $RELEASE_NAME = $RELEASE_INFO | jq -r '.name'
-          $RELEASE_BODY = $RELEASE_INFO | jq -r '.body'
+          RELEASE_ID=$(echo "$RELEASE_INFO" | jq -r '.id')
+          DRAFT=$(echo "$RELEASE_INFO" | jq -r '.draft')
+          TAG_NAME=$(echo "$RELEASE_INFO" | jq -r '.tag_name')
+          RELEASE_NAME=$(echo "$RELEASE_INFO" | jq -r '.name')
+          RELEASE_BODY=$(echo "$RELEASE_INFO" | jq -r '.body')
           
-          echo "release_id=$RELEASE_ID" >> $env:GITHUB_OUTPUT
-          echo "release_tag=$RELEASE_TAG" >> $env:GITHUB_OUTPUT
-          echo "release_name=$RELEASE_NAME" >> $env:GITHUB_OUTPUT
-          echo "release_body=$RELEASE_BODY" >> $env:GITHUB_OUTPUT
+          echo "release_id=$RELEASE_ID" >> $GITHUB_OUTPUT
+          echo "draft=$DRAFT" >> $GITHUB_OUTPUT
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "release_name=$RELEASE_NAME" >> $GITHUB_OUTPUT
+          echo "release_body=$RELEASE_BODY" >> $GITHUB_OUTPUT
           
           echo "Release ID: $RELEASE_ID"
-          echo "Release Tag: $RELEASE_TAG"
+          echo "Draft: $DRAFT"
+          echo "Tag: $TAG_NAME"
           echo "Release Name: $RELEASE_NAME"
-          
-          # List assets for this release
-          echo "Assets for this release:"
-          curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets" | \
+          echo "Release Body: $RELEASE_BODY"
             jq -r '.[] | "- \(.name) (\(.size) bytes)"'
         shell: pwsh
         env:
@@ -178,140 +179,140 @@ jobs:
 
       - name: Copy assets to public repository
         run: |
-          # Use PowerShell for cross-platform compatibility
-          $TAG_NAME = "${{ github.ref }}".Replace("refs/tags/", "")
-          if ([string]::IsNullOrEmpty($TAG_NAME) -or $TAG_NAME -eq "refs/tags/") {
-            $TAG_NAME = "${{ github.event.inputs.tag_name }}"
-          }
+          # Extract tag name from github.ref or use input tag_name
+          if [[ "${{ github.ref }}" == "refs/tags/*" ]]; then
+            TAG_NAME="${{ github.ref }}"
+            TAG_NAME=${TAG_NAME#refs/tags/}
+          else
+            TAG_NAME="${{ github.event.inputs.tag_name }}"
+          fi
           
           # Get list of assets from source release
-          $ASSETS_URL = "https://api.github.com/repos/${{ github.repository }}/releases/${{ steps.get_release.outputs.release_id }}/assets"
+          ASSETS_URL="https://api.github.com/repos/${{ github.repository }}/releases/${{ steps.get_release.outputs.release_id }}/assets"
           echo "Fetching assets from: $ASSETS_URL"
-          $ASSET_LIST = curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" "$ASSETS_URL"
+          ASSET_LIST=$(curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" "$ASSETS_URL")
           
           # Check if we got valid asset list
-          if ($ASSET_LIST | jq -e . 2>$null) {
+          if echo "$ASSET_LIST" | jq -e . &>/dev/null; then
             echo "Successfully retrieved asset list"
-          } else {
+          else
             echo "Error: Failed to retrieve asset list"
             echo "Response: $ASSET_LIST"
             exit 1
-          }
+          fi
           
           # Determine target tag
-          $TARGET_TAG = "$TAG_NAME"
+          TARGET_TAG="$TAG_NAME"
           
           echo "Target tag for public repository: $TARGET_TAG"
           
           # Create release in public repository if it doesn't exist
-          $PUBLIC_REPO = "AkshayAnuOnline/quikballot"
+          PUBLIC_REPO="AkshayAnuOnline/quikballot"
           
           # Check if release already exists
           echo "Checking if release $TARGET_TAG exists in $PUBLIC_REPO"
-          $RELEASE_EXISTS = curl -s -o /dev/null -w "%{http_code}" \
+          RELEASE_EXISTS=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
-            "https://api.github.com/repos/$PUBLIC_REPO/releases/tags/$TARGET_TAG"
+            "https://api.github.com/repos/$PUBLIC_REPO/releases/tags/$TARGET_TAG")
           
           echo "Release exists check returned HTTP status: $RELEASE_EXISTS"
           
-          if ($RELEASE_EXISTS -eq "404") {
+          if [ "$RELEASE_EXISTS" = "404" ]; then
             echo "Creating new release $TARGET_TAG in $PUBLIC_REPO"
             # Create new release
-            $RELEASE_DATA = jq -n \
+            RELEASE_DATA=$(jq -n \
               --arg tag "$TARGET_TAG" \
               --arg name "${{ steps.get_release.outputs.release_name }}" \
               --arg body "${{ steps.get_release.outputs.release_body }}" \
-              '{tag_name: $tag, name: $name, body: $body, draft: false, prerelease: false}'
+              '{tag_name: $tag, name: $name, body: $body, draft: false, prerelease: false}')
             
-            $RELEASE_RESPONSE = curl -s -X POST \
+            RELEASE_RESPONSE=$(curl -s -X POST \
               -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
               -H "Content-Type: application/json" \
               -d "$RELEASE_DATA" \
-              "https://api.github.com/repos/$PUBLIC_REPO/releases"
+              "https://api.github.com/repos/$PUBLIC_REPO/releases")
             
             # Check if release creation was successful
-            if ($RELEASE_RESPONSE | jq -e .id 2>$null) {
+            if echo "$RELEASE_RESPONSE" | jq -e .id &>/dev/null; then
               echo "Successfully created release"
-            } else {
+            else
               echo "Error: Failed to create release"
               echo "Response: $RELEASE_RESPONSE"
               exit 1
-            }
+            fi
             
-            $PUBLIC_RELEASE_ID = $RELEASE_RESPONSE | jq -r '.id'
+            PUBLIC_RELEASE_ID=$(echo "$RELEASE_RESPONSE" | jq -r '.id')
             echo "Created release with ID: $PUBLIC_RELEASE_ID"
-          } else {
+          else
             echo "Release $TARGET_TAG already exists, getting release ID"
             # Get existing release ID
-            $PUBLIC_RELEASE_INFO = curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
-              "https://api.github.com/repos/$PUBLIC_REPO/releases/tags/$TARGET_TAG"
+            PUBLIC_RELEASE_INFO=$(curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+              "https://api.github.com/repos/$PUBLIC_REPO/releases/tags/$TARGET_TAG")
             
             # Check if we got valid release info
-            if ($PUBLIC_RELEASE_INFO | jq -e .id 2>$null) {
+            if echo "$PUBLIC_RELEASE_INFO" | jq -e .id &>/dev/null; then
               echo "Successfully retrieved existing release information"
-            } else {
+            else
               echo "Error: Failed to retrieve existing release information"
               echo "Response: $PUBLIC_RELEASE_INFO"
               exit 1
-            }
+            fi
             
-            $PUBLIC_RELEASE_ID = $PUBLIC_RELEASE_INFO | jq -r '.id'
+            PUBLIC_RELEASE_ID=$(echo "$PUBLIC_RELEASE_INFO" | jq -r '.id')
             echo "Existing release ID: $PUBLIC_RELEASE_ID"
-          }
+          fi
           
           # Copy each asset by downloading first and then uploading
           echo "Copying assets to public repository release $PUBLIC_RELEASE_ID"
           # Create temporary directory for assets
-          $TEMP_DIR = [System.IO.Path]::GetTempPath() + "assets"
-          if (!(Test-Path $TEMP_DIR)) { New-Item -ItemType Directory -Path $TEMP_DIR }
+          TEMP_DIR="$(mktemp -d)"
           
           # Counter for copied assets
-          $COPIED_ASSETS = 0
+          COPIED_ASSETS=0
           
           # Process each asset
-          ($ASSET_LIST | jq -c '.[]' | ConvertFrom-Json) | ForEach-Object {
-            $ASSET_NAME = $_.name
-            $ASSET_URL = $_.url
-            $ASSET_SIZE = $_.size
+          echo "$ASSET_LIST" | jq -c '.[]' | while IFS= read -r asset; do
+            ASSET_NAME=$(echo "$asset" | jq -r '.name')
+            ASSET_URL=$(echo "$asset" | jq -r '.url')
+            ASSET_SIZE=$(echo "$asset" | jq -r '.size')
             
             # Only copy installer files (skip blockmap, yml, and other non-installer files)
-            if ($ASSET_NAME -match '\.(dmg|exe|msi|AppImage|deb)$') {
+            if [[ $ASSET_NAME =~ \.(dmg|exe|msi|AppImage|deb)$ ]]; then
               echo "Copying installer $ASSET_NAME ($ASSET_SIZE bytes) to public repository"
               
               # Download asset to temporary file
-              $TEMP_FILE = "$TEMP_DIR\$ASSET_NAME"
+              TEMP_FILE="$TEMP_DIR/$ASSET_NAME"
               curl -s -L -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
                 -H "Accept: application/octet-stream" \
                 "$ASSET_URL" -o "$TEMP_FILE"
               
               # Check if download was successful
-              if (Test-Path "$TEMP_FILE") {
+              if [ -f "$TEMP_FILE" ]; then
                 # Upload asset to public repository
-                $UPLOAD_RESPONSE = curl -s -X POST \
+                UPLOAD_RESPONSE=$(curl -s -X POST \
                   -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
                   -H "Content-Type: application/octet-stream" \
                   --data-binary "@$TEMP_FILE" \
-                  "https://uploads.github.com/repos/$PUBLIC_REPO/releases/$PUBLIC_RELEASE_ID/assets?name=$ASSET_NAME"
+                  "https://uploads.github.com/repos/$PUBLIC_REPO/releases/$PUBLIC_RELEASE_ID/assets?name=$ASSET_NAME")
                 
                 # Check if upload was successful
-                if ($UPLOAD_RESPONSE | jq -e .id 2>$null) {
+                if echo "$UPLOAD_RESPONSE" | jq -e .id &>/dev/null; then
                   echo "Successfully uploaded $ASSET_NAME"
-                  $COPIED_ASSETS++
-                } else {
+                  COPIED_ASSETS=$((COPIED_ASSETS + 1))
+                else
                   echo "Error uploading $ASSET_NAME: $UPLOAD_RESPONSE"
-                }
-              } else {
+                fi
+              else
                 echo "Error downloading $ASSET_NAME"
-              }
+              fi
               
               # Clean up temporary file
-              if (Test-Path "$TEMP_FILE") { Remove-Item "$TEMP_FILE" }
-            } else {
+              if [ -f "$TEMP_FILE" ]; then rm "$TEMP_FILE"; fi
+            else
               echo "Skipping non-installer file: $ASSET_NAME"
-            }
-          }
+            fi
+          done
           
           echo "Finished copying assets. Total installer files copied: $COPIED_ASSETS"
-        shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
