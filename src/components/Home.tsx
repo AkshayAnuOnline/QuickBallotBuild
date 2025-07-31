@@ -177,7 +177,8 @@ const Home: React.FC = () => {
         <div className="qb-subtitle">Manage elections offline with ease.</div>
       </header>
       {/* Floating Help and About Buttons */}
-      <div className="floating-buttons">{updateInfo?.updateAvailable && (
+      <div className="floating-buttons">
+        {updateInfo?.updateAvailable && (
           <button
             className="update-btn"
             style={{
@@ -219,8 +220,7 @@ const Home: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             gap: 6,
-            transition: 'background 0.18s, color 0.18s, transform 0.18s',
-            transform: supportHover ? 'translateY(-2px)' : 'none',
+            transition: 'background 0.18s, transform 0.18s',
           }}
           onClick={() => window.open('https://buildmelon.com/grow-the-melon/', '_blank')}
           aria-label="Support the Creator"
@@ -230,8 +230,6 @@ const Home: React.FC = () => {
           <span className="material-icons" style={{ fontSize: 18, color: supportHover ? '#fff' : '#e53935', transition: 'color 0.18s' }}>favorite</span>
           Support Creator
         </button>
-
-        )}
         <button
           className="help-btn"
           style={{
