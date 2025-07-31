@@ -9,7 +9,7 @@ import './AddOrganizationModal.scss';
 import HelpDrawer from './HelpDrawer'; // (Assume we will create this component)
 
 const ipc = window.electronAPI;
-const CURRENT_VERSION = require('../../../package.json').version;
+const CURRENT_VERSION = '1.0.0'; // Will be updated during build process
 
 const Home: React.FC = () => {
   const [organizations, setOrganizations] = useState<any[]>([]);
@@ -45,7 +45,7 @@ const Home: React.FC = () => {
   useEffect(() => {
     const checkUpdate = async () => {
       try {
-        const res = await ipc.invoke('check-for-update', CURRENT_VERSION, window.process.platform);
+        const res = await ipc.invoke('check-for-update', CURRENT_VERSION, window.electronAPI.platform);
         setUpdateInfo(res);
       } catch (e) {
         setUpdateInfo(null);
@@ -59,7 +59,7 @@ const Home: React.FC = () => {
     if (showAbout) {
       const checkUpdate = async () => {
         try {
-          const res = await ipc.invoke('check-for-update', CURRENT_VERSION, window.process.platform);
+          const res = await ipc.invoke('check-for-update', CURRENT_VERSION, window.electronAPI.platform);
           setUpdateInfo(res);
         } catch (e) {
           setUpdateInfo(null);

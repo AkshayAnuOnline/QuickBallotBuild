@@ -1,10 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import openmojiData from '../../assets/openmoji.json';
-
 // Use the full OpenMoji list, filter out non-emoji
-const openmojiList: { hexcode: string; annotation: string }[] = (openmojiData as any[])
-  .filter(e => e.group !== 'Component')
-  .map(e => ({ hexcode: e.hexcode, annotation: e.annotation }));
+let openmojiList: { hexcode: string; annotation: string }[] = [];
+
+// Load OpenMoji data at runtime
+const loadOpenMojiData = async () => {
+  try {
+    const response = await fetch('/openmoji.json');
+    const data = await response.json();
+    openmojiList = data
+      .filter((e: any) => e.group !== 'Component')
+      .map((e: any) => ({ hexcode: e.hexcode, annotation: e.annotation }));
+    return openmojiList;
+  } catch (error) {
+    console.error('Failed to load OpenMoji data:', error);
+    return [];
+  }
+};
+
+loadOpenMojiData();
 
 // Utility function to get the correct asset path
 const getAssetPath = (path: string) => {
@@ -22,20 +35,31 @@ interface OpenMojiPickerProps {
 
 const OpenMojiPicker: React.FC<OpenMojiPickerProps> = ({ onSelect, onClose }) => {
   const [search, setSearch] = useState('');
-  const [filtered, setFiltered] = useState(openmojiList);
+  const [filtered, setFiltered] = useState<{ hexcode: string; annotation: string }[]>([]);
 
   useEffect(() => {
-    const s = search.trim().toLowerCase();
-    setFiltered(
-      s
-        ? openmojiList.filter(
-            (e) =>
-              e.annotation.toLowerCase().includes(s) ||
-              e.hexcode.replace(/-/g, '').toLowerCase().includes(s)
-          )
-        : openmojiList
-    );
+    // Update filtered list when openmojiList is loaded
+    if (openmojiList.length > 0) {
+      const s = search.trim().toLowerCase();
+      setFiltered(
+        s
+          ? openmojiList.filter(
+              (e) =>
+                e.annotation.toLowerCase().includes(s) ||
+                e.hexcode.replace(/-/g, '').toLowerCase().includes(s)
+            )
+          : openmojiList
+      );
+    }
   }, [search]);
+
+  // Load OpenMoji data when component mounts
+  useEffect(() => {
+    loadOpenMojiData().then(() => {
+      // Update filtered list after data is loaded
+      setFiltered(openmojiList);
+    });
+  }, []);
 
   return (
     <div style={{

@@ -86,7 +86,6 @@
       "provider": "github",
       "owner": "AkshayAnuOnline",
       "repo": "QuickBallotBuild",
-      "releaseType": "release",
       "vPrefixedTagName": true,
       "draft": true,
       "token": "${GH_TOKEN}"
