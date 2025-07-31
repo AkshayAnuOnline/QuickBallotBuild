@@ -859,21 +859,25 @@ ipcMain.handle('test-svg-conversion', async () => {
 });
 
 // --- Update Check, Download, and Install ---
-const LATEST_JSON_URL = 'https://github.com/AkshayAnuOnline/quikballot/releases/latest/download/latest.json';
+const LATEST_RELEASE_API = 'https://api.github.com/repos/AkshayAnuOnline/QuickBallotBuild/releases/latest';
 
 ipcMain.handle('check-for-update', async (event, currentVersion: string, platform: string) => {
   return new Promise((resolve, reject) => {
-    https.get(LATEST_JSON_URL, (res) => {
+    https.get(LATEST_RELEASE_API, { headers: { 'User-Agent': 'QuickBallot' } }, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
-          if (json.version && json.version !== currentVersion) {
-            resolve({ updateAvailable: true, version: json.version });
-          } else {
-            resolve({ updateAvailable: false });
+          const latestTag: string | undefined = json.tag_name || json.name;
+          if (latestTag) {
+            const latestVersion = latestTag.startsWith('v') ? latestTag.slice(1) : latestTag;
+            if (latestVersion !== currentVersion) {
+              resolve({ updateAvailable: true, version: latestVersion });
+              return;
+            }
           }
+          resolve({ updateAvailable: false });
         } catch (e) {
           if (typeof e === 'object' && e !== null && 'message' in (e as any)) {
             console.error('Update check error:', (e as any).message);
