@@ -58,6 +58,7 @@ jobs:
         run: |
           npm install --global --production windows-build-tools
           npm install --global node-gyp
+        shell: bash
 
       - name: Set up Python (Windows)
         if: matrix.os == 'windows-latest'
@@ -71,6 +72,7 @@ jobs:
           choco install -y python3
           choco install -y gtk-runtime
           choco install -y libjpeg-turbo
+        shell: bash
 
       - name: Install dependencies
         run: |
@@ -78,6 +80,7 @@ jobs:
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             npm rebuild canvas --update-binary
           fi
+        shell: bash
 
       - name: Build and Publish ${{ matrix.name }}
         run: |
@@ -93,6 +96,7 @@ jobs:
           npm run electron:build -- $PLATFORM_FLAG --publish always
           echo "Build completed for ${{ matrix.name }}. Checking for release creation..."
           sleep 30  # Wait for release to be created
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
@@ -102,6 +106,7 @@ jobs:
           echo "Checking for release with tag: $TAG_NAME"
           curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG_NAME" | jq -r '.id, .tag_name, .draft'
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
