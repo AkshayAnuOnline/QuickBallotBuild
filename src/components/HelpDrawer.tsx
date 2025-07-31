@@ -338,7 +338,7 @@ const QuickBallotOverview = () => (
     </div>
     <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
       <img 
-        src="/assets/Block-Diagram.png" 
+        src="./assets/Block-Diagram.png" 
         alt="QuickBallot Block Diagram" 
         style={{ 
           maxWidth: '100%', 
