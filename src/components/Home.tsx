@@ -204,11 +204,38 @@ const Home: React.FC = () => {
           <span className="material-icons" style={{ fontSize: 18, color: supportHover ? '#fff' : '#e53935', transition: 'color 0.18s' }}>favorite</span>
           Support Creator
         </button>
-      <button
-        className="help-btn"
-        style={{
+        {updateInfo?.updateAvailable && (
+          <button
+            className="update-btn"
+            style={{
+              background: '#ffb300',
+              border: '2px solid #ffb300',
+              color: '#222',
+              fontWeight: 600,
+              fontSize: 15,
+              borderRadius: 16,
+              boxShadow: '0 2px 12px #0004',
+              padding: '6px 14px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              transition: 'background 0.18s, transform 0.18s',
+              marginLeft: 12,
+            }}
+            onClick={handleOpenReleases}
+            onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
+            onMouseLeave={e => (e.currentTarget.style.transform = 'none')}
+          >
+            <span className="material-icons" style={{ fontSize: 18, color: '#222' }}>system_update_alt</span>
+            Update Available
+          </button>
+        )}
+        <button
+          className="help-btn"
+          style={{
             background: helpHover ? '#4f8cff' : '#232427',
-          border: '2px solid #4f8cff',
+            border: '2px solid #4f8cff',
             color: helpHover ? '#fff' : '#4f8cff',
             fontWeight: 600,
             fontSize: 15,
