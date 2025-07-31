@@ -4,6 +4,10 @@
 
 The version displayed in the app's UI (window title and about modal) is now dynamically read from package.json. When you update the version in package.json and follow the release process, both the GitHub releases and the app's UI will show the correct version.
 
+## Important Note About Asset Loading
+
+Static assets like images should be loaded using relative paths (e.g., `./assets/filename.png`) rather than absolute paths to ensure they load correctly in both development and production environments.
+
 ## Release Process
 
 ### New Automated Release Process (Recommended)
