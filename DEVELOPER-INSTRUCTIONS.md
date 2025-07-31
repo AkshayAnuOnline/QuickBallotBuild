@@ -12,6 +12,10 @@ Static assets like images should be loaded using relative paths (e.g., `./assets
 
 The app version is now properly handled through the electronAPI, which reads the version from package.json in the main process and makes it available to the renderer process. This avoids using `require()` in the renderer process, which is not allowed in Electron's sandboxed environment.
 
+## Important Note About Preload Scripts
+
+Preload scripts in Electron should only use the modules that are available in the Electron environment. Direct imports of Node.js modules like `fs` and `path` should be avoided. Instead, use IPC (Inter-Process Communication) to handle file operations in the main process and communicate with the renderer process through the electronAPI.
+
 ## Release Process
 
 ### New Automated Release Process (Recommended)
