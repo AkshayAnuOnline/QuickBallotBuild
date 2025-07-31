@@ -12,6 +12,7 @@ declare global {
       once(channel: string, func: (...args: any[]) => void): void;
       removeListener(channel: string, func: (...args: any[]) => void): void;
       platform: string;
+      getVersion(): string;
     };
   }
 }

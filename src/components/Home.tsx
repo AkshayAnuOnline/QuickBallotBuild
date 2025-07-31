@@ -9,9 +9,8 @@ import './AddOrganizationModal.scss';
 import HelpDrawer from './HelpDrawer'; // (Assume we will create this component)
 
 const ipc = window.electronAPI;
-// Dynamically import package.json to get the current version
-const packageJson = require('../../../package.json');
-const CURRENT_VERSION = packageJson.version;
+// Get version from electronAPI (main process)
+const CURRENT_VERSION = window.electronAPI.getVersion();
 
 const Home: React.FC = () => {
   const [organizations, setOrganizations] = useState<any[]>([]);
