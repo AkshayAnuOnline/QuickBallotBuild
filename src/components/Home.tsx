@@ -202,7 +202,7 @@ const Home: React.FC = () => {
             onMouseLeave={e => (e.currentTarget.style.transform = 'none')}
           >
             <span className="material-icons" style={{ fontSize: 18, color: '#222' }}>system_update_alt</span>
-            Update Available
+            Download Latest Update
           </button>
         )}
         <button
@@ -749,11 +749,11 @@ const Home: React.FC = () => {
                 <button className="add-org-close" onClick={() => setShowUpdateModal(false)} aria-label="Close" style={{ background: 'none', border: 'none', color: '#b0b8ff', fontSize: 32, cursor: 'pointer' }}>×</button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 32px 32px 32px' }}>
-                <div style={{ fontWeight: 700, fontSize: 22, marginBottom: 8, color: '#4f8cff' }}>Update Available</div>
+                <div style={{ fontWeight: 700, fontSize: 22, marginBottom: 8, color: '#4f8cff' }}>Download Latest Update</div>
                 <div style={{ fontSize: 18, marginBottom: 8 }}>Version {updateInfo.version} is available.</div>
                 <div style={{ fontSize: 16, color: '#b0b8ff', marginBottom: 16 }}>You are currently on v{appVersion}.</div>
                 <div style={{ padding: '16px 0' }}>
-                  <div style={{ marginBottom: 12, fontWeight: 600 }}>Update Available</div>
+                  <div style={{ marginBottom: 12, fontWeight: 600 }}>Download Latest Update</div>
                   <div style={{ marginBottom: 16 }}>Version {updateInfo.version} is available. Click below to download from our releases page.</div>
                   <button
                     className="create-btn"
