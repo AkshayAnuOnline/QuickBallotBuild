@@ -1,0 +1,62 @@
+name: Test Token Permissions
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-permissions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test private repo access
+        run: |
+          echo "Testing access to private repo"
+          curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+            "https://api.github.com/repos/AkshayAnuOnline/QuickBallotBuild/releases" > /tmp/private_releases.json
+          if [ -s /tmp/private_releases.json ]; then
+            echo "Private repo access successful"
+            head -n 10 /tmp/private_releases.json
+          else
+            echo "Private repo access failed"
+            cat /tmp/private_releases.json
+          fi
+
+      - name: Test public repo access
+        run: |
+          echo "Testing access to public repo"
+          curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+            "https://api.github.com/repos/AkshayAnuOnline/quikballot/releases" > /tmp/public_releases.json
+          if [ -s /tmp/public_releases.json ]; then
+            echo "Public repo access successful"
+            head -n 10 /tmp/public_releases.json
+          else
+            echo "Public repo access failed"
+            cat /tmp/public_releases.json
+          fi
+
+      - name: Test creating release in public repo
+        run: |
+          echo "Testing release creation in public repo"
+          RELEASE_DATA=$(jq -n \
+            --arg tag "test-permission" \
+            --arg name "Test Permission Release" \
+            --arg body "This is a test release to check permissions" \
+            '{tag_name: $tag, name: $name, body: $body, draft: true}')
+          
+          RESPONSE=$(curl -s -X POST \
+            -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "$RELEASE_DATA" \
+            "https://api.github.com/repos/AkshayAnuOnline/quikballot/releases")
+          
+          if echo "$RESPONSE" | jq -e .id >/dev/null 2>&1; then
+            echo "Release creation successful"
+            echo "$RESPONSE" | jq -r '.id, .tag_name'
+            # Clean up test release
+            RELEASE_ID=$(echo "$RESPONSE" | jq -r '.id')
+            curl -s -X DELETE \
+              -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+              "https://api.github.com/repos/AkshayAnuOnline/quikballot/releases/$RELEASE_ID"
+          else
+            echo "Release creation failed"
+            echo "$RESPONSE"
+          fi
