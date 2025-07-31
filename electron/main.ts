@@ -449,10 +449,7 @@ function generateVoterId(orgName: string, voterName: string, organizationId: num
 // --- IPC Handler for App Version ---
 ipcMain.handle('get-app-version', async (event) => {
   try {
-    // Read package.json to get the version
-    const packageJsonPath = path.join(__dirname, '../package.json');
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    return packageJson.version;
+    return app.getVersion();
   } catch (error) {
     console.error('Error reading package.json:', error);
     return '1.0.0'; // fallback version
@@ -965,8 +962,7 @@ async function createWindow(): Promise<void> {
   console.log('Icon exists:', require('fs').existsSync(iconPath));
   console.log('Creating main window...');
   // Read version from package.json
-  const packageJson = require('../package.json');
-  const appVersion = packageJson.version;
+  const appVersion = app.getVersion();
   
   // Create the browser window.
   const mainWindow = new BrowserWindow({
