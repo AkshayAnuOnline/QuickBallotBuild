@@ -699,7 +699,7 @@ const Home: React.FC = () => {
                     <button
                       className="create-btn"
                       onClick={handleOpenReleases}
-                      style={{ padding: '8px 20px', fontSize: 15, marginBottom: 12 }}
+                      style={{ padding: '8px 20px', fontSize: 15, marginBottom: 12, margin: '0 auto' }}
                     >
                       Download Latest Version
                     </button>
@@ -732,7 +732,7 @@ const Home: React.FC = () => {
                   <button
                     className="create-btn"
                     onClick={handleOpenReleases}
-                    style={{ padding: '8px 20px', fontSize: 15, boxShadow: '0 2px 8px #0003' }}
+                    style={{ padding: '8px 20px', fontSize: 15, boxShadow: '0 2px 8px #0003', margin: '0 auto' }}
                   >
                     Go to Releases Page
                   </button>
