@@ -8,6 +8,10 @@ The version displayed in the app's UI (window title and about modal) is now dyna
 
 Static assets like images should be loaded using relative paths (e.g., `./assets/filename.png`) rather than absolute paths to ensure they load correctly in both development and production environments.
 
+## Important Note About Version Handling
+
+The app version is now properly handled through the electronAPI, which reads the version from package.json in the main process and makes it available to the renderer process. This avoids using `require()` in the renderer process, which is not allowed in Electron's sandboxed environment.
+
 ## Release Process
 
 ### New Automated Release Process (Recommended)
