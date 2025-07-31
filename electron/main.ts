@@ -446,6 +446,19 @@ function generateVoterId(orgName: string, voterName: string, organizationId: num
   return `${orgPrefix}-${voterPrefix}-${randomNumber}`;
 }
 
+// --- IPC Handler for App Version ---
+ipcMain.handle('get-app-version', async (event) => {
+  try {
+    // Read package.json to get the version
+    const packageJsonPath = path.join(__dirname, '../package.json');
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+    return packageJson.version;
+  } catch (error) {
+    console.error('Error reading package.json:', error);
+    return '1.0.0'; // fallback version
+  }
+});
+
 // --- IPC Handlers for Voters CRUD ---
 ipcMain.handle('get-voters', (event, organizationId) => {
   return db.prepare('SELECT * FROM voters WHERE organization_id = ? ORDER BY created_at DESC').all(organizationId);

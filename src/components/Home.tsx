@@ -9,8 +9,6 @@ import './AddOrganizationModal.scss';
 import HelpDrawer from './HelpDrawer'; // (Assume we will create this component)
 
 const ipc = window.electronAPI;
-// Get version from electronAPI (main process)
-const CURRENT_VERSION = window.electronAPI.getVersion();
 
 const Home: React.FC = () => {
   const [organizations, setOrganizations] = useState<any[]>([]);
@@ -19,6 +17,7 @@ const Home: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [appVersion, setAppVersion] = useState('1.0.0'); // Default fallback
   const [orgToOpen, setOrgToOpen] = useState<any | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
@@ -46,7 +45,7 @@ const Home: React.FC = () => {
   useEffect(() => {
     const checkUpdate = async () => {
       try {
-        const res = await ipc.invoke('check-for-update', CURRENT_VERSION, window.electronAPI.platform);
+        const res = await ipc.invoke('check-for-update', appVersion, window.electronAPI.platform);
         setUpdateInfo(res);
       } catch (e) {
         setUpdateInfo(null);
@@ -60,7 +59,7 @@ const Home: React.FC = () => {
     if (showAbout) {
       const checkUpdate = async () => {
         try {
-          const res = await ipc.invoke('check-for-update', CURRENT_VERSION, window.electronAPI.platform);
+          const res = await ipc.invoke('check-for-update', appVersion, window.electronAPI.platform);
           setUpdateInfo(res);
         } catch (e) {
           setUpdateInfo(null);
@@ -82,10 +81,28 @@ const Home: React.FC = () => {
   };
 
   useEffect(() => {
+    fetchOrganizations();
+    
+    // Get version from electronAPI (main process)
+    const updateVersion = async () => {
+      try {
+        if (window.electronAPI && typeof window.electronAPI.getVersion === 'function') {
+          const version = await window.electronAPI.getVersion();
+          setAppVersion(version);
+        }
+      } catch (error) {
+        console.error('Error getting app version:', error);
+      }
+    };
+    
+    // Call the function to update the version
+    updateVersion();
+  }, []);
+
+  useEffect(() => {
     if (location.pathname === '/') {
       fetchOrganizations();
     }
-    // eslint-disable-next-line
   }, [location.pathname]);
 
   const fetchOrganizations = async () => {
@@ -697,7 +714,7 @@ const Home: React.FC = () => {
                 </div>
                 <div style={{ width: '100%', borderTop: '1.5px solid #353a4a', margin: '0 0 18px 0' }} />
                 <div style={{ fontSize: 17, color: '#b0b8ff', fontWeight: 500, marginBottom: 6, letterSpacing: 0.2 }}>Version</div>
-                <div style={{ fontSize: 20, color: '#4f8cff', fontWeight: 700, marginBottom: 18 }}>{CURRENT_VERSION}</div>
+                <div style={{ fontSize: 20, color: '#4f8cff', fontWeight: 700, marginBottom: 18 }}>{appVersion}</div>
                 <div style={{ width: '100%', borderTop: '1.5px solid #353a4a', margin: '0 0 18px 0' }} />
                 <div style={{ fontSize: 17, color: '#b0b8ff', fontWeight: 500, marginBottom: 6, letterSpacing: 0.2 }}>Developer</div>
                 <div style={{ fontSize: 19, color: '#fff', fontWeight: 700, marginBottom: 10 }}>Akshay Anu S</div>
@@ -733,7 +750,7 @@ const Home: React.FC = () => {
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 32px 32px 32px' }}>
                 <div style={{ fontWeight: 700, fontSize: 22, marginBottom: 8, color: '#4f8cff' }}>Update Available</div>
                 <div style={{ fontSize: 18, marginBottom: 8 }}>Version {updateInfo.version} is available.</div>
-                <div style={{ fontSize: 16, color: '#b0b8ff', marginBottom: 16 }}>You are currently on v{CURRENT_VERSION}.</div>
+                <div style={{ fontSize: 16, color: '#b0b8ff', marginBottom: 16 }}>You are currently on v{appVersion}.</div>
                 <div style={{ padding: '16px 0' }}>
                   <div style={{ marginBottom: 12, fontWeight: 600 }}>Update Available</div>
                   <div style={{ marginBottom: 16 }}>Version {updateInfo.version} is available. Click below to download from our releases page.</div>
