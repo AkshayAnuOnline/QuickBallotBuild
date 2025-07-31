@@ -1,5 +1,9 @@
 # QuickBallot Electron App - Developer Instructions
 
+## Important Note About Version Display
+
+The version displayed in the app's UI (window title and about modal) is now dynamically read from package.json. When you update the version in package.json and follow the release process, both the GitHub releases and the app's UI will show the correct version.
+
 ## Release Process
 
 ### New Automated Release Process (Recommended)
