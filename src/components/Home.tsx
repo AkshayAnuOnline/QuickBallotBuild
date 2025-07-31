@@ -221,6 +221,7 @@ const Home: React.FC = () => {
             alignItems: 'center',
             gap: 6,
             transition: 'background 0.18s, transform 0.18s',
+            transform: supportHover ? 'translateY(-2px)' : 'none',
           }}
           onClick={() => window.open('https://buildmelon.com/grow-the-melon/', '_blank')}
           aria-label="Support the Creator"
