@@ -951,6 +951,10 @@ async function createWindow(): Promise<void> {
   console.log('Icon path:', iconPath);
   console.log('Icon exists:', require('fs').existsSync(iconPath));
   console.log('Creating main window...');
+  // Read version from package.json
+  const packageJson = require('../package.json');
+  const appVersion = packageJson.version;
+  
   // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 1200,
@@ -961,6 +965,7 @@ async function createWindow(): Promise<void> {
       preload: path.join(__dirname, 'preload.js')
     },
     icon: iconPath,
+    title: `QuickBallot v${appVersion}`,
     titleBarStyle: 'default',
     show: true, // Force window to show immediately
     center: true
