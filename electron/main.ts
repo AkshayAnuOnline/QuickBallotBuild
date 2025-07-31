@@ -859,7 +859,7 @@ ipcMain.handle('test-svg-conversion', async () => {
 });
 
 // --- Update Check, Download, and Install ---
-const LATEST_RELEASE_API = 'https://api.github.com/repos/AkshayAnuOnline/QuickBallotBuild/releases/latest';
+const LATEST_RELEASE_API = 'https://api.github.com/repos/AkshayAnuOnline/quikballot/releases/latest';
 
 ipcMain.handle('check-for-update', async (event, currentVersion: string, platform: string) => {
   return new Promise((resolve, reject) => {
