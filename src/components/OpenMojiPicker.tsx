@@ -5,7 +5,8 @@ let openmojiList: { hexcode: string; annotation: string }[] = [];
 // Load OpenMoji data at runtime
 const loadOpenMojiData = async () => {
   try {
-    const response = await fetch('/openmoji.json');
+    // Use relative path for openmoji.json to work in both dev and prod environments
+    const response = await fetch('./openmoji.json');
     const data = await response.json();
     openmojiList = data
       .filter((e: any) => e.group !== 'Component')
@@ -21,11 +22,9 @@ loadOpenMojiData();
 
 // Utility function to get the correct asset path
 const getAssetPath = (path: string) => {
-  // Use import.meta.env.BASE_URL if available (Vite)
-  // Fallback to process.env.BASE_URL if available (Create React App)
-  // Otherwise use empty string for relative paths
-  const baseUrl = (import.meta as any).env?.BASE_URL || process.env.BASE_URL || '';
-  return `${baseUrl}${path}`;
+  // Use relative path for assets to work in both dev and prod environments
+  // In Electron, we need to use './' prefix for relative paths
+  return `.${path}`;
 };
 
 interface OpenMojiPickerProps {
