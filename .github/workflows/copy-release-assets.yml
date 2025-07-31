@@ -71,6 +71,7 @@ jobs:
           curl -s -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets" | \
             jq -r '.[] | "- \(.name) (\(.size) bytes)"'
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
@@ -215,6 +216,7 @@ jobs:
           done
           
           echo "Finished copying assets. Total installer files copied: $COPIED_ASSETS"
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
       
@@ -223,5 +225,6 @@ jobs:
           # Clean up temporary directory
           echo "Note: Temporary directory is automatically cleaned up by the runner"
           echo "Manual cleanup not required in GitHub Actions"
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
