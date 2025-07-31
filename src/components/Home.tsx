@@ -257,35 +257,6 @@ const Home: React.FC = () => {
             <span className="material-icons" style={{ fontSize: 18, color: aboutHover ? '#fff' : '#4f8cff', transition: 'color 0.18s' }}>info_outline</span>
             About QuickBallot
           </button>
-          {updateInfo?.updateAvailable && showUpdateBadge && (
-            <button
-              onClick={handleUpdateClick}
-              style={{
-                position: 'absolute',
-                top: -10,
-                right: -10,
-                background: '#ffb300',
-                color: '#222',
-                border: '2px solid #fff',
-                borderRadius: '50%',
-                width: 24,
-                height: 24,
-                fontWeight: 700,
-                fontSize: 16,
-                boxShadow: '0 2px 8px #0003',
-                cursor: 'pointer',
-                zIndex: 2,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 0
-              }}
-              title={`Update available: v${updateInfo.version}`}
-              aria-label="Update available"
-            >
-              !
-            </button>
-          )}
         </div>
       </div>
 
@@ -719,19 +690,23 @@ const Home: React.FC = () => {
                 <div style={{ fontSize: 17, color: '#b0b8ff', fontWeight: 500, marginBottom: 6, letterSpacing: 0.2 }}>Developer</div>
                 <div style={{ fontSize: 19, color: '#fff', fontWeight: 700, marginBottom: 10 }}>Akshay Anu S</div>
                 <div style={{ fontSize: 16, color: '#7faaff', fontWeight: 600, marginBottom: 0 }}>Managed by BuildMelon</div>
-                {updateInfo?.updateAvailable && (
+                {updateInfo?.updateAvailable ? (
                   <div style={{ marginTop: 24, width: '100%', textAlign: 'center' }}>
                     <div style={{ fontSize: 18, marginBottom: 8 }}>Version {updateInfo.version} is available.</div>
                     <div style={{ marginBottom: 20, color: '#666' }}>
-                      A new version of QuickBallot is available. Click below to go to our releases page to download the latest version.
+                      A new version of QuickBallot is available. Click below to download it from our releases page.
                     </div>
                     <button
-                      className="add-org-button"
+                      className="create-btn"
                       onClick={handleOpenReleases}
-                      style={{ width: '100%', padding: '12px 0', fontSize: 16, marginBottom: 12 }}
+                      style={{ padding: '8px 20px', fontSize: 15, marginBottom: 12 }}
                     >
-                      Go to Releases Page
+                      Download Latest Version
                     </button>
+                  </div>
+                ) : (
+                  <div style={{ marginTop: 24, width: '100%', textAlign: 'center', color: '#7faaff', fontWeight: 600 }}>
+                    You are running the latest version.
                   </div>
                 )}
               </div>
@@ -755,9 +730,9 @@ const Home: React.FC = () => {
                   <div style={{ marginBottom: 12, fontWeight: 600 }}>Update Available</div>
                   <div style={{ marginBottom: 16 }}>Version {updateInfo.version} is available. Click below to download from our releases page.</div>
                   <button
-                    className="add-org-button"
+                    className="create-btn"
                     onClick={handleOpenReleases}
-                    style={{ width: '100%', padding: '12px 0', fontSize: 16, boxShadow: '0 2px 8px #0003', marginBottom: 0 }}
+                    style={{ padding: '8px 20px', fontSize: 15, boxShadow: '0 2px 8px #0003' }}
                   >
                     Go to Releases Page
                   </button>
