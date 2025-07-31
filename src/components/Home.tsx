@@ -36,7 +36,6 @@ const Home: React.FC = () => {
   const [updateInfo, setUpdateInfo] = useState<{ updateAvailable: boolean, version?: string } | null>(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [showUpdateBadge, setShowUpdateBadge] = useState(true);
   const [supportHover, setSupportHover] = useState(false);
   const [helpHover, setHelpHover] = useState(false);
   const [aboutHover, setAboutHover] = useState(false);
@@ -72,12 +71,6 @@ const Home: React.FC = () => {
   // Handler to open releases page
   const handleOpenReleases = async () => {
     await ipc.invoke('open-website', 'https://github.com/AkshayAnuOnline/quikballot/releases');
-  };
-
-  // Handler for update notification click
-  const handleUpdateClick = async () => {
-    await ipc.invoke('open-website', 'https://github.com/AkshayAnuOnline/quikballot/releases');
-    setShowUpdateBadge(false); // Clear badge after clicking
   };
 
   useEffect(() => {
