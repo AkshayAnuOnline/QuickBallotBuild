@@ -53,6 +53,42 @@ const Home: React.FC = () => {
     checkUpdate();
   }, []);
 
+  // Get version from electronAPI (main process) and check for updates
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        // Get app version
+        if (window.electronAPI && typeof window.electronAPI.getVersion === 'function') {
+          const version = await window.electronAPI.getVersion();
+          console.log('App version retrieved:', version);
+          setAppVersion(version);
+          
+          // Add a small delay to ensure version is properly set before checking for updates
+          setTimeout(async () => {
+            try {
+              const res = await ipc.invoke('check-for-update', version, window.electronAPI.platform);
+              console.log('Update check result:', res);
+              setUpdateInfo(res);
+              if (res?.updateAvailable) {
+                setShowUpdateModal(true);
+              } else {
+                setShowUpdateModal(false);
+              }
+            } catch (e) {
+              console.error('Error checking for updates:', e);
+              setUpdateInfo(null);
+              setShowUpdateModal(false);
+            }
+          }, 500);
+        }
+      } catch (error) {
+        console.error('Error getting app version:', error);
+      }
+    };
+    
+    initializeApp();
+  }, []);
+
   // Check for updates when About modal opens
   useEffect(() => {
     if (showAbout) {
@@ -60,13 +96,20 @@ const Home: React.FC = () => {
         try {
           const res = await ipc.invoke('check-for-update', appVersion, window.electronAPI.platform);
           setUpdateInfo(res);
+          // Also update the update modal visibility
+          if (res?.updateAvailable) {
+            setShowUpdateModal(true);
+          } else {
+            setShowUpdateModal(false);
+          }
         } catch (e) {
           setUpdateInfo(null);
+          setShowUpdateModal(false);
         }
       };
       checkUpdate();
     }
-  }, [showAbout]);
+  }, [showAbout, appVersion]);
 
   // Handler to open releases page
   const handleOpenReleases = async () => {
@@ -75,22 +118,7 @@ const Home: React.FC = () => {
 
   useEffect(() => {
     fetchOrganizations();
-    
-    // Get version from electronAPI (main process)
-    const updateVersion = async () => {
-      try {
-        if (window.electronAPI && typeof window.electronAPI.getVersion === 'function') {
-          const version = await window.electronAPI.getVersion();
-          setAppVersion(version);
-        }
-      } catch (error) {
-        console.error('Error getting app version:', error);
-      }
-    };
-    
-    // Call the function to update the version
-    updateVersion();
-  }, []);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (location.pathname === '/') {
@@ -171,7 +199,7 @@ const Home: React.FC = () => {
       </header>
       {/* Floating Help and About Buttons */}
       <div className="floating-buttons">
-        {updateInfo?.updateAvailable && (
+        {(updateInfo?.updateAvailable || showUpdateModal) && (
           <button
             className="update-btn"
             style={{

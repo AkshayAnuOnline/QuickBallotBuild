@@ -872,9 +872,29 @@ ipcMain.handle('check-for-update', async (event, currentVersion: string, platfor
           const latestTag: string | undefined = json.tag_name || json.name;
           if (latestTag) {
             const latestVersion = latestTag.startsWith('v') ? latestTag.slice(1) : latestTag;
-            if (latestVersion !== currentVersion) {
-              resolve({ updateAvailable: true, version: latestVersion });
-              return;
+            // Only show update notification if GitHub version is newer than current version
+            if (latestVersion && currentVersion) {
+              const latestVersionParts = latestVersion.split('.').map(Number);
+              const currentVersionParts = currentVersion.split('.').map(Number);
+              
+              // Pad arrays to same length with zeros
+              while (latestVersionParts.length < 3) latestVersionParts.push(0);
+              while (currentVersionParts.length < 3) currentVersionParts.push(0);
+              
+              // Compare versions (major.minor.patch)
+              let updateAvailable = false;
+              if (latestVersionParts[0] > currentVersionParts[0]) {
+                updateAvailable = true;
+              } else if (latestVersionParts[0] === currentVersionParts[0] && latestVersionParts[1] > currentVersionParts[1]) {
+                updateAvailable = true;
+              } else if (latestVersionParts[0] === currentVersionParts[0] && latestVersionParts[1] === currentVersionParts[1] && latestVersionParts[2] > currentVersionParts[2]) {
+                updateAvailable = true;
+              }
+              
+              if (updateAvailable) {
+                resolve({ updateAvailable: true, version: latestVersion });
+                return;
+              }
             }
           }
           resolve({ updateAvailable: false });
@@ -967,6 +987,7 @@ async function createWindow(): Promise<void> {
   console.log('Creating main window...');
   // Read version from package.json
   const appVersion = app.getVersion();
+  console.log('App version:', appVersion);
   
   // Create the browser window.
   const mainWindow = new BrowserWindow({
@@ -983,6 +1004,23 @@ async function createWindow(): Promise<void> {
     show: true, // Force window to show immediately
     center: true
   })
+  
+  // Set the title multiple times to ensure it's not overwritten
+  const setTitleWithRetry = () => {
+    const currentVersion = app.getVersion();
+    console.log('Setting window title with version:', currentVersion);
+    mainWindow.setTitle(`QuickBallot v${currentVersion}`);
+  };
+  
+  // Set title immediately and then at intervals
+  setTitleWithRetry();
+  const titleInterval = setInterval(setTitleWithRetry, 1000);
+  
+  // Clear the interval after 10 seconds
+  setTimeout(() => {
+    clearInterval(titleInterval);
+  }, 10000);
+  
   mainWindow.center();
   mainWindow.show();
   mainWindow.focus();
