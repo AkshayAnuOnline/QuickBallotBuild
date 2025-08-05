@@ -5,13 +5,35 @@ let openmojiList: { hexcode: string; annotation: string }[] = [];
 // Load OpenMoji data at runtime
 const loadOpenMojiData = async () => {
   try {
-    // Use relative path for openmoji.json to work in both dev and prod environments
-    const response = await fetch('./openmoji.json');
-    const data = await response.json();
-    openmojiList = data
-      .filter((e: any) => e.group !== 'Component')
-      .map((e: any) => ({ hexcode: e.hexcode, annotation: e.annotation }));
-    return openmojiList;
+    // Get the correct base URL for fetching assets
+    const baseURL = getBaseURL();
+    // Try multiple paths for openmoji.json to work in both dev and prod environments
+    const paths = [`${baseURL}/openmoji.json`, './openmoji.json', '/openmoji.json'];
+    let data: any[] = [];
+    
+    for (const path of paths) {
+      try {
+        const response = await fetch(path);
+        if (response.ok) {
+          data = await response.json();
+          console.log(`Successfully loaded OpenMoji data from ${path}`);
+          break;
+        }
+      } catch (err) {
+        console.warn(`Failed to load OpenMoji data from ${path}:`, err);
+        continue;
+      }
+    }
+    
+    if (data.length > 0) {
+      openmojiList = data
+        .filter((e: any) => e.group !== 'Component')
+        .map((e: any) => ({ hexcode: e.hexcode, annotation: e.annotation }));
+      return openmojiList;
+    } else {
+      console.error('Failed to load OpenMoji data from all attempted paths');
+      return [];
+    }
   } catch (error) {
     console.error('Failed to load OpenMoji data:', error);
     return [];
@@ -22,9 +44,24 @@ loadOpenMojiData();
 
 // Utility function to get the correct asset path
 const getAssetPath = (path: string) => {
+  // Get the correct base URL for fetching assets
+  const baseURL = getBaseURL();
   // Use relative path for assets to work in both dev and prod environments
-  // In Electron, we need to use './' prefix for relative paths
-  return `.${path}`;
+  // In Electron, we need to use the correct base URL
+  return `${baseURL}/${path}`;
+};
+
+// Utility function to get the correct base URL for fetching assets
+const getBaseURL = () => {
+  // In Electron, we need to use the correct base URL for fetching assets
+  if (typeof window !== 'undefined' && window.location.protocol === 'file:') {
+    // When running in Electron, we're loading from a file URL
+    // We need to adjust the path to correctly fetch assets
+    const basePath = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
+    return basePath;
+  }
+  // In development or web environments, use relative paths
+  return '';
 };
 
 interface OpenMojiPickerProps {
@@ -122,7 +159,10 @@ const OpenMojiPicker: React.FC<OpenMojiPickerProps> = ({ onSelect, onClose }) =>
               onError={e => {
                 console.error('Failed to load OpenMoji:', e.currentTarget.src);
                 e.currentTarget.style.opacity = "0.3";
-                e.currentTarget.parentElement?.insertAdjacentHTML('beforeend', `<div style='color:#eb445a;font-size:10px;text-align:center;'>Not found</div>`);
+                // Only add error message if not already added
+                if (!e.currentTarget.parentElement?.querySelector('.emoji-error')) {
+                  e.currentTarget.parentElement?.insertAdjacentHTML('beforeend', `<div class="emoji-error" style='color:#eb445a;font-size:10px;text-align:center;margin-top:2px;'>Not found</div>`);
+                }
               }}
             />
           </button>
