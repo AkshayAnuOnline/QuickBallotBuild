@@ -1,12 +1,8 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-// Debug: confirm preload ran
-console.log('[Preload] script loaded at', new Date().toISOString());
 
-// Listen for DOM ready to ensure logging on renderer side as well
-window.addEventListener('DOMContentLoaded', () => {
-  console.log('[Preload] DOMContentLoaded - electronAPI keys:', Object.keys((window as any).electronAPI || {}));
-});
+
+
 
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object

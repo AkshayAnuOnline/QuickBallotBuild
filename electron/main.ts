@@ -997,7 +997,7 @@ ipcMain.handle('open-permission-settings', async () => {
 
 // Handler to read openmoji.json file
 ipcMain.handle('read-openmoji-data', async () => {
-  console.log('[IPC] read-openmoji-data handler called');
+  
   try {
     // Determine the correct path based on whether the app is packaged
     let openMojiPath;
@@ -1007,19 +1007,19 @@ ipcMain.handle('read-openmoji-data', async () => {
       openMojiPath = path.join(__dirname, '../dist/openmoji.json');
     }
     
-    console.log(`[OpenMoji] Looking for openmoji.json at: ${openMojiPath}`);
+    
     
     // For packaged apps, we need to check if the file exists in ASAR
     let fileExists = false;
     try {
       fileExists = fs.existsSync(openMojiPath);
-      console.log(`[OpenMoji] File exists: ${fileExists}`);
+      
     } catch (e) {
-      console.log(`[OpenMoji] Error checking file existence: ${e}`);
+      
     }
     
     const data = fs.readFileSync(openMojiPath, 'utf8');
-    console.log('[IPC] Successfully read openmoji.json');
+    
     return { success: true, data: JSON.parse(data) };
   } catch (error) {
     console.error('[OpenMoji] Error reading openmoji.json:', error);
@@ -1029,7 +1029,7 @@ ipcMain.handle('read-openmoji-data', async () => {
 
 // Handler to read openmoji image files
 ipcMain.handle('read-openmoji-image', async (event, hexcode: string) => {
-  console.log(`[IPC] read-openmoji-image handler called with hexcode: ${hexcode}`);
+  
   try {
     // Determine the correct path based on whether the app is packaged
     let imagePath;
@@ -1039,7 +1039,7 @@ ipcMain.handle('read-openmoji-image', async (event, hexcode: string) => {
       imagePath = path.join(__dirname, '../dist/openmoji', `${hexcode.toUpperCase()}.png`);
     }
     
-    console.log(`[OpenMoji] Looking for image at: ${imagePath}`);
+    
     
     // Check if file exists
     if (!fs.existsSync(imagePath)) {
@@ -1050,7 +1050,7 @@ ipcMain.handle('read-openmoji-image', async (event, hexcode: string) => {
     // Read the image file as base64
     const imageBuffer = fs.readFileSync(imagePath);
     const base64Image = imageBuffer.toString('base64');
-    console.log(`[IPC] Successfully read image for ${hexcode}`);
+    
     return { success: true, data: `data:image/png;base64,${base64Image}` };
   } catch (error) {
     console.error('[OpenMoji] Error reading image:', error);

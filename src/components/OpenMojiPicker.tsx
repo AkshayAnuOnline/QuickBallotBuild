@@ -3,60 +3,60 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 // Load OpenMoji data at runtime
 const loadOpenMojiData = async () => {
   try {
-    console.log('Loading OpenMoji data...');
-    console.log('Window location protocol:', window.location.protocol);
+    
+    
     
     // Debug: Check electronAPI availability
-    console.log('electronAPI exists:', typeof window !== 'undefined' && window.electronAPI);
+    
     if (typeof window !== 'undefined' && window.electronAPI) {
-      console.log('electronAPI keys:', Object.keys(window.electronAPI));
-      console.log('readOpenMojiData exists:', typeof window.electronAPI.readOpenMojiData);
-      console.log('readOpenMojiData is function:', typeof window.electronAPI.readOpenMojiData === 'function');
-      console.log('readOpenMojiImage exists:', typeof window.electronAPI.readOpenMojiImage);
-      console.log('readOpenMojiImage is function:', typeof window.electronAPI.readOpenMojiImage === 'function');
+      
+      
+      
+      
+      
     }
     
     // In Electron, use IPC to read the file
     if (typeof window !== 'undefined' && window.electronAPI && typeof window.electronAPI.readOpenMojiData === 'function') {
-      console.log('Using Electron IPC to load OpenMoji data');
+      
       // Use Electron IPC to read openmoji.json
       const result = await window.electronAPI.readOpenMojiData();
-      console.log('Data loaded via IPC:', result);
+      
       if (Array.isArray(result) && result.length > 0) {
         const data = result;
-        console.log('OpenMoji data length:', data.length);
+        
         const list = data
           .filter((e: any) => e.group !== 'Component')
           .map((e: any) => ({ hexcode: e.hexcode, annotation: e.annotation }));
-        console.log('Successfully loaded OpenMoji data via IPC, list length:', list.length);
+        
         return list;
       } else {
-        console.error('Failed to load OpenMoji data via IPC');
+        
         return [];
       }
     } else {
-      console.log('Using fetch to load OpenMoji data');
+      
       // In development or web environments, use fetch
       // Get the correct base URL for fetching assets
       const baseURL = getBaseURL();
-      console.log('Base URL:', baseURL);
+      
       // Try multiple paths for openmoji.json to work in both dev and prod environments
       const paths = [`${baseURL}/openmoji.json`, './openmoji.json', '/openmoji.json'];
       let data: any[] = [];
       
       for (const path of paths) {
         try {
-          console.log('Trying to fetch from:', path);
+          
           const response = await fetch(path);
           if (response.ok) {
             data = await response.json();
-            console.log(`Successfully loaded OpenMoji data from ${path}`);
+            
             break;
           } else {
-            console.warn(`Failed to load OpenMoji data from ${path}:`, response.status);
+            
           }
         } catch (err) {
-          console.warn(`Failed to load OpenMoji data from ${path}:`, err);
+          
           continue;
         }
       }
@@ -67,7 +67,7 @@ const loadOpenMojiData = async () => {
           .map((e: any) => ({ hexcode: e.hexcode, annotation: e.annotation }));
         return list;
       } else {
-        console.error('Failed to load OpenMoji data from all attempted paths');
+        
         return [];
       }
     }
