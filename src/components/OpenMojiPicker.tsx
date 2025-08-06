@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
 // Load OpenMoji data at runtime
 const loadOpenMojiData = async () => {
@@ -122,17 +122,13 @@ const EmojiButton: React.FC<EmojiButtonProps> = ({ emoji, onLoadImage, onSelect 
 
   useEffect(() => {
     const loadImage = async () => {
-      setLoading(true);
-      setError(false);
       try {
+        setLoading(true);
+        setError(false);
         const src = await onLoadImage(emoji.hexcode);
-        if (src) {
-          setImageSrc(src);
-        } else {
-          setError(true);
-        }
+        setImageSrc(src);
       } catch (err) {
-        console.error('Failed to load emoji image:', err);
+        console.error(`Error loading emoji ${emoji.hexcode}:`, err);
         setError(true);
       } finally {
         setLoading(false);
@@ -145,21 +141,45 @@ const EmojiButton: React.FC<EmojiButtonProps> = ({ emoji, onLoadImage, onSelect 
   if (loading) {
     return (
       <div
+        title={emoji.annotation}
         style={{
-          background: 'none',
+          background: '#2d2e35',
           border: 'none',
           borderRadius: 8,
           padding: 4,
           cursor: 'pointer',
           transition: 'background 0.2s',
-          width: 36,
-          height: 36,
+          width: 46,
+          height: 46,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <div style={{ width: 24, height: 24, backgroundColor: '#ccc', borderRadius: '50%' }} />
+        <div style={{ width: 32, height: 32, backgroundColor: '#ccc', borderRadius: '50%' }} />
+      </div>
+    );
+  }
+
+  if (!imageSrc) {
+    return (
+      <div
+        title={emoji.annotation}
+        style={{
+          background: '#2d2e35',
+          border: 'none',
+          borderRadius: 8,
+          padding: 4,
+          cursor: 'pointer',
+          transition: 'background 0.2s',
+          width: 46,
+          height: 46,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <div style={{ width: 32, height: 32, backgroundColor: '#ccc', borderRadius: '50%' }} />
       </div>
     );
   }
@@ -175,6 +195,8 @@ const EmojiButton: React.FC<EmojiButtonProps> = ({ emoji, onLoadImage, onSelect 
           padding: 4,
           cursor: 'pointer',
           transition: 'background 0.2s',
+          width: 46,
+          height: 46,
         }}
         onClick={() => onSelect('', emoji)}
       >
@@ -207,6 +229,8 @@ const EmojiButton: React.FC<EmojiButtonProps> = ({ emoji, onLoadImage, onSelect 
         padding: 4,
         cursor: 'pointer',
         transition: 'background 0.2s',
+        width: 46,
+        height: 46,
       }}
       onClick={() => onSelect(imageSrc || '', emoji)}
     >
@@ -226,33 +250,58 @@ const OpenMojiPicker: React.FC<OpenMojiPickerProps> = ({ onSelect, onClose }) =>
   const [filtered, setFiltered] = useState<{ hexcode: string; annotation: string }[]>([]);
   const [imageCache, setImageCache] = useState<Record<string, string>>({});
   const [openmojiList, setOpenmojiList] = useState<{ hexcode: string; annotation: string }[]>([]);
+  // Virtual scrolling state
+  const [visibleStart, setVisibleStart] = useState(0);
+  const [visibleEnd, setVisibleEnd] = useState(36); // Show 6x6 grid initially
+  const itemsPerRow = 6;
+  const rowsPerPage = 6;
+  const itemsPerPage = itemsPerRow * rowsPerPage;
 
-  useEffect(() => {
-    // Update filtered list when openmojiList is loaded
-    if (openmojiList.length > 0) {
-      const s = search.trim().toLowerCase();
-      setFiltered(
-        s
-          ? openmojiList.filter(
-              (e) =>
-                e.annotation.toLowerCase().includes(s) ||
-                e.hexcode.replace(/-/g, '').toLowerCase().includes(s)
-            )
-          : openmojiList
-      );
-    }
+  // Filter emojis based on search
+  const filteredEmojis = useMemo(() => {
+    if (!openmojiList.length) return [];
+    const s = search.trim().toLowerCase();
+    return s
+      ? openmojiList.filter(
+          (e) =>
+            e.annotation.toLowerCase().includes(s) ||
+            e.hexcode.replace(/-/g, '').toLowerCase().includes(s)
+        )
+      : openmojiList;
   }, [search, openmojiList]);
+
+  // Update filtered list
+  useEffect(() => {
+    setFiltered(filteredEmojis);
+    // Reset visible range when search changes
+    setVisibleStart(0);
+    setVisibleEnd(itemsPerPage);
+  }, [filteredEmojis, itemsPerPage]);
 
   // Load OpenMoji data when component mounts
   useEffect(() => {
     loadOpenMojiData().then((data) => {
       if (data) {
         setOpenmojiList(data);
-        // Update filtered list after data is loaded
-        setFiltered(data);
       }
     });
   }, []);
+
+  // Handle scroll for virtual scrolling
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, clientHeight, scrollHeight } = e.currentTarget;
+    
+    // Load more items when scrolling near the bottom
+    if (scrollHeight - scrollTop - clientHeight < 100) {
+      setVisibleEnd(prev => Math.min(prev + itemsPerPage, filtered.length));
+    }
+    
+    // Adjust visible start based on scroll position
+    const rowHeight = 46; // Approximate height of each emoji row
+    const startRow = Math.floor(scrollTop / rowHeight);
+    setVisibleStart(startRow * itemsPerRow);
+    setVisibleEnd(Math.min((startRow + rowsPerPage + 1) * itemsPerRow, filtered.length));
+  }, [filtered.length, itemsPerPage, itemsPerRow, rowsPerPage]);
 
   // Function to load emoji image via IPC
   const loadEmojiImage = async (hexcode: string) => {
@@ -318,20 +367,9 @@ const OpenMojiPicker: React.FC<OpenMojiPickerProps> = ({ onSelect, onClose }) =>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#eb445a', fontWeight: 700, fontSize: 20, cursor: 'pointer' }}>&times;</button>
         )}
       </div>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(6, 1fr)',
-        gap: 10,
-        maxHeight: 260,
-        overflowY: 'auto',
-      }}>
-        {filtered.map((emoji) => (
-          <EmojiButton 
-            key={emoji.hexcode} 
-            emoji={emoji} 
-            onLoadImage={loadEmojiImage} 
-            onSelect={onSelect} 
-          />
+      <div className="emoji-grid" onScroll={handleScroll} style={{ height: '276px', overflowY: 'auto' }}>
+        {filtered.slice(visibleStart, visibleEnd).map((emoji) => (
+          <EmojiButton key={emoji.hexcode} emoji={emoji} onLoadImage={loadEmojiImage} onSelect={onSelect} />
         ))}
       </div>
     </div>

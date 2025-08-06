@@ -1109,6 +1109,23 @@ const ManageCandidates: React.FC<ManageCandidatesProps> = ({ organization_id: pr
                   <button type="button" className="add-org-file-btn" style={{ marginBottom: 0 }} onClick={() => setShowEditEmojiPicker(v => !v)}>
                     {editCandidate?.symbol && !editCandidate?.symbolFile ? 'Change Emoji' : 'Pick Emoji'}
                   </button>
+                  {/* Show emoji preview in edit modal */}
+                  {editCandidate?.symbol && !editCandidate?.symbolFile && editCandidate.symbol.startsWith('data:image/') ? (
+                    <img
+                      src={editCandidate.symbol}
+                      alt="Symbol Preview"
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 6,
+                        objectFit: 'cover',
+                        marginLeft: 8,
+                        background: '#232427',
+                        border: '1.5px solid #31334a',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                      }}
+                    />
+                  ) : null}
                   <input
                     type="file"
                     accept=".png,.jpg,.jpeg,.svg,.webp"
