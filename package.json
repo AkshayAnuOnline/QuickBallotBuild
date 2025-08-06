@@ -1,6 +1,6 @@
 {
   "name": "quickballot",
-  "version": "1.0.74",
+  "version": "1.0.75",
   "description": "Offline Election Management System",
   "main": "dist-electron/main.js",
   "homepage": "./",
