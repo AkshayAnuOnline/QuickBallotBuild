@@ -5,6 +5,17 @@ const loadOpenMojiData = async () => {
   try {
     console.log('Loading OpenMoji data...');
     console.log('Window location protocol:', window.location.protocol);
+    
+    // Debug: Check electronAPI availability
+    console.log('electronAPI exists:', typeof window !== 'undefined' && window.electronAPI);
+    if (typeof window !== 'undefined' && window.electronAPI) {
+      console.log('electronAPI keys:', Object.keys(window.electronAPI));
+      console.log('readOpenMojiData exists:', typeof window.electronAPI.readOpenMojiData);
+      console.log('readOpenMojiData is function:', typeof window.electronAPI.readOpenMojiData === 'function');
+      console.log('readOpenMojiImage exists:', typeof window.electronAPI.readOpenMojiImage);
+      console.log('readOpenMojiImage is function:', typeof window.electronAPI.readOpenMojiImage === 'function');
+    }
+    
     // In Electron, use IPC to read the file
     if (typeof window !== 'undefined' && window.electronAPI && typeof window.electronAPI.readOpenMojiData === 'function') {
       console.log('Using Electron IPC to load OpenMoji data');
