@@ -6,6 +6,30 @@ import bcrypt from 'bcryptjs';
 import { spawn } from 'child_process';
 import * as https from 'https';
 import * as fs from 'fs';
+
+// Set up logging to file
+const logPath = path.join(app.getPath('logs'), 'quickballot.log');
+const logStream = fs.createWriteStream(logPath, { flags: 'a' });
+
+// Override console.log to also write to file
+const originalLog = console.log;
+const originalError = console.error;
+const originalWarn = console.warn;
+
+console.log = function(...args) {
+  originalLog.apply(console, args);
+  logStream.write(`[LOG] ${new Date().toISOString()} ${args.join(' ')}\n`);
+};
+
+console.error = function(...args) {
+  originalError.apply(console, args);
+  logStream.write(`[ERROR] ${new Date().toISOString()} ${args.join(' ')}\n`);
+};
+
+console.warn = function(...args) {
+  originalWarn.apply(console, args);
+  logStream.write(`[WARN] ${new Date().toISOString()} ${args.join(' ')}\n`);
+};
 // Import sharp dynamically to avoid packaging issues
 let sharp: any;
 
@@ -955,13 +979,13 @@ ipcMain.handle('request-camera-permission', async () => {
 ipcMain.handle('open-permission-settings', async () => {
   try {
     if (process.platform === 'darwin') {
-      // Open macOS privacy settings for camera
-      shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_Camera');
+      // For macOS, open System Preferences
+      spawn('open', ['x-apple.systempreferences:com.apple.preference.security?Privacy_Camera']);
     } else if (process.platform === 'win32') {
-      // Open Windows privacy settings for camera
-      shell.openExternal('ms-settings:privacy-webcam');
+      // For Windows, open camera privacy settings
+      spawn('start', ['ms-settings:privacy-webcam'], { shell: true });
     } else {
-      // For Linux, we can't directly open settings, but we can open a help page
+      // For Linux, open a help page
       shell.openExternal('https://help.ubuntu.com/community/Webcam');
     }
     return true;
@@ -971,10 +995,72 @@ ipcMain.handle('open-permission-settings', async () => {
   }
 });
 
+// Handler to read openmoji.json file
+ipcMain.handle('read-openmoji-data', async () => {
+  console.log('[IPC] read-openmoji-data handler called');
+  try {
+    // Determine the correct path based on whether the app is packaged
+    let openMojiPath;
+    if (app.isPackaged) {
+      openMojiPath = path.join(__dirname, '../dist/openmoji.json');
+    } else {
+      openMojiPath = path.join(__dirname, '../dist/openmoji.json');
+    }
+    
+    console.log(`[OpenMoji] Looking for openmoji.json at: ${openMojiPath}`);
+    
+    // For packaged apps, we need to check if the file exists in ASAR
+    let fileExists = false;
+    try {
+      fileExists = fs.existsSync(openMojiPath);
+      console.log(`[OpenMoji] File exists: ${fileExists}`);
+    } catch (e) {
+      console.log(`[OpenMoji] Error checking file existence: ${e}`);
+    }
+    
+    const data = fs.readFileSync(openMojiPath, 'utf8');
+    console.log('[IPC] Successfully read openmoji.json');
+    return { success: true, data: JSON.parse(data) };
+  } catch (error) {
+    console.error('[OpenMoji] Error reading openmoji.json:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Handler to read openmoji image files
+ipcMain.handle('read-openmoji-image', async (event, hexcode: string) => {
+  console.log(`[IPC] read-openmoji-image handler called with hexcode: ${hexcode}`);
+  try {
+    // Determine the correct path based on whether the app is packaged
+    let imagePath;
+    if (app.isPackaged) {
+      imagePath = path.join(__dirname, '../dist/openmoji', `${hexcode.toUpperCase()}.png`);
+    } else {
+      imagePath = path.join(__dirname, '../dist/openmoji', `${hexcode.toUpperCase()}.png`);
+    }
+    
+    console.log(`[OpenMoji] Looking for image at: ${imagePath}`);
+    
+    // Check if file exists
+    if (!fs.existsSync(imagePath)) {
+      console.error(`[OpenMoji] Image not found: ${imagePath}`);
+      return { success: false, error: 'Image not found' };
+    }
+    
+    // Read the image file as base64
+    const imageBuffer = fs.readFileSync(imagePath);
+    const base64Image = imageBuffer.toString('base64');
+    console.log(`[IPC] Successfully read image for ${hexcode}`);
+    return { success: true, data: `data:image/png;base64,${base64Image}` };
+  } catch (error) {
+    console.error('[OpenMoji] Error reading image:', error);
+    return { success: false, error: error.message };
+  }
+});
+
 // --- Existing Electron Window Code ---
 
 async function createWindow(): Promise<void> {
-  // Determine icon path based on platform
   const iconPath = process.platform === 'win32' 
     ? path.join(__dirname, '../assets/icon.ico')
     : process.platform === 'darwin'
@@ -1081,7 +1167,10 @@ async function createWindow(): Promise<void> {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.whenReady().then(() => {
+  console.log('[App] Electron app is ready');
+  console.log('[App] Registering IPC handlers');
   createWindow()
+  console.log('[App] Main window created');
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
