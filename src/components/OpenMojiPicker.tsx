@@ -6,7 +6,7 @@ const loadOpenMojiData = async () => {
     console.log('Loading OpenMoji data...');
     console.log('Window location protocol:', window.location.protocol);
     // In Electron, use IPC to read the file
-    if (typeof window !== 'undefined' && window.location.protocol === 'file:') {
+    if (typeof window !== 'undefined' && window.electronAPI && typeof window.electronAPI.readOpenMojiData === 'function') {
       console.log('Using Electron IPC to load OpenMoji data');
       // Use Electron IPC to read openmoji.json
       const result = await window.electronAPI.readOpenMojiData();
@@ -252,7 +252,7 @@ const OpenMojiPicker: React.FC<OpenMojiPickerProps> = ({ onSelect, onClose }) =>
     
     try {
       // In Electron, use IPC to read the image
-      if (typeof window !== 'undefined' && window.location.protocol === 'file:') {
+      if (typeof window !== 'undefined' && window.electronAPI && typeof window.electronAPI.readOpenMojiImage === 'function') {
         const result = await window.electronAPI.readOpenMojiImage(hexcode);
         if (result.success && result.data) {
           // Cache the image
