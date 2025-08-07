@@ -31,9 +31,29 @@ export default defineConfig({
                     {
                       src: 'node_modules/@img/sharp-libvips-darwin-arm64/*/lib/*',
                       dest: 'dist-electron/node_modules/@img/sharp-libvips-darwin-arm64/lib/'
+                    },
+                    {
+                      src: 'assets/openmoji.json',
+                      dest: 'dist-electron/assets/'
+                    },
+                    {
+                      src: 'assets/openmoji/*',
+                      dest: 'dist-electron/assets/openmoji/'
+                    },
+                    {
+                      src: 'assets/Cast Vote Sound.mp3',
+                      dest: 'dist-electron/assets/'
+                    },
+                    {
+                      src: 'assets/Cast Vote Sound.mp3',
+                      dest: 'dist/assets/'
                     }
                   ],
-                  hook: 'writeBundle'
+                  hook: 'writeBundle',
+                  copyOnce: true,
+                  verbose: true,
+                  flatten: true,
+                  overwrite: true
                 })
               ]
             }
@@ -56,9 +76,21 @@ export default defineConfig({
                     {
                       src: 'node_modules/better-sqlite3/build/Release/better_sqlite3.node',
                       dest: 'dist-electron/build/Release'
+                    },
+                    {
+                      src: 'assets/openmoji.json',
+                      dest: 'dist-electron/assets/'
+                    },
+                    {
+                      src: 'assets/openmoji/*',
+                      dest: 'dist-electron/assets/openmoji/'
                     }
                   ],
-                  hook: 'writeBundle'
+                  hook: 'writeBundle',
+                  copyOnce: true,
+                  verbose: true,
+                  flatten: true,
+                  overwrite: true
                 })
               ]
             }

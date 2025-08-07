@@ -194,8 +194,21 @@ const DirectVotingWindow: React.FC<DirectVotingWindowProps> = ({ orgId, election
     if (selectedCandidate === null) return;
 
     // Play cast vote sound
-    const audio = new Audio('/Cast Vote Sound.wav');
-    audio.play().catch(e => console.log('Audio play failed:', e));
+    try {
+      console.log('Requesting sound path for Cast Vote Sound.mp3');
+      const soundPath = await window.electronAPI.getAssetPath('Cast Vote Sound.mp3');
+      console.log('Received sound path:', soundPath);
+      if (soundPath) {
+        console.log('Creating Audio object with path:', soundPath);
+        const audio = new Audio(soundPath);
+        console.log('Audio object created, attempting to play');
+        audio.play().catch(e => console.log('Audio play failed:', e));
+      } else {
+        console.log('Sound file not found');
+      }
+    } catch (error) {
+      console.log('Error playing sound:', error);
+    }
 
     // Save vote for current position
     const newVotes = { ...votes, [currentPosition]: selectedCandidate };

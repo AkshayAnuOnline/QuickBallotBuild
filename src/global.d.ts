@@ -7,6 +7,7 @@ export interface ElectronAPI {
   getVersion(): Promise<string>;
   readOpenMojiData(): Promise<any[]>;
   readOpenMojiImage(hexcode: string): Promise<{ success: boolean; data?: string; error?: string }>;
+  getAssetPath(assetName: string): Promise<string | null>;
 }
 
 declare global {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import DirectVotingWindow from './DirectVotingWindow';
-import { BrowserQRCodeReader } from '@zxing/browser';
+import QrScanner from 'qr-scanner';
 import AdminExitModal from './AdminExitModal';
 import VoterIdInput from './VoterIdInput';
 
@@ -23,7 +23,7 @@ const QRBasedVotingWindow: React.FC<VotingWindowProps> = (props) => {
   const [mode, setMode] = useState<'qr' | 'voterid'>('qr');
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [scanning, setScanning] = useState(false);
-  const qrCodeReaderRef = useRef<BrowserQRCodeReader | null>(null);
+  const qrCodeReaderRef = useRef<QrScanner | null>(null);
   const controlsRef = useRef<any>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [org, setOrg] = useState<any>(null);
@@ -92,31 +92,26 @@ const QRBasedVotingWindow: React.FC<VotingWindowProps> = (props) => {
         setScanning(true);
         
         // Clean up previous scanner if exists
-        if (controlsRef.current) {
-          controlsRef.current.stop();
-          controlsRef.current = null;
+        if (qrCodeReaderRef.current) {
+          qrCodeReaderRef.current.stop();
+          qrCodeReaderRef.current = null;
         }
         
         // Initialize new scanner
-        const codeReader = new BrowserQRCodeReader();
-        qrCodeReaderRef.current = codeReader;
+        const scanner = new QrScanner(videoRef.current!, (result: { data: string | null }) => {
+          handleScan(result.data || null);
+          setScanning(false);
+          scanner.stop();
+        }, {
+          highlightScanRegion: true,
+          preferredCamera: 'environment',
+          maxScansPerSecond: 10
+        });
+        qrCodeReaderRef.current = scanner;
         
         // Start scanning
-        if (videoRef.current) {
-          const controls = await codeReader.decodeFromVideoDevice(
-            undefined,
-            videoRef.current,
-            (result, _, controls) => {
-              if (result) {
-                handleScan(result.getText());
-                setScanning(false);
-                controls?.stop();
-              }
-            }
-          );
-          
-          controlsRef.current = controls;
-        }
+        await scanner.start();
+        controlsRef.current = { stop: () => scanner.stop() }; // Mock controls for cleanup
       } catch (error: any) {
         console.error('Camera error:', error);
         setScanning(false);
@@ -205,20 +200,7 @@ const QRBasedVotingWindow: React.FC<VotingWindowProps> = (props) => {
   // Start/stop QR scanning
   useEffect(() => {
     if (mode === 'qr' && !authenticatedVoter && videoRef.current) {
-      setScanning(true);
-      qrCodeReaderRef.current = new BrowserQRCodeReader();
-      qrCodeReaderRef.current.decodeFromVideoDevice(
-        undefined,
-        videoRef.current,
-        (result, _unused, controls) => {
-          controlsRef.current = controls;
-          if (result) {
-            handleScan(result.getText());
-            setScanning(false);
-            controls?.stop();
-          }
-        }
-      );
+      // Scanner initialization moved to initScanner function
     }
     return () => {
       setScanning(false);

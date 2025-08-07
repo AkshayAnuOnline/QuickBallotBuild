@@ -480,6 +480,85 @@ ipcMain.handle('get-app-version', async (event) => {
   }
 });
 
+ipcMain.handle('get-asset-path', async (event, assetName: string) => {
+  try {
+    const isDev = process.env.NODE_ENV === 'development';
+    console.log('get-asset-path: NODE_ENV =', process.env.NODE_ENV);
+    console.log('get-asset-path: isDev =', isDev);
+    console.log('get-asset-path: __dirname =', __dirname);
+    
+    if (isDev) {
+      // In development, assets are in the assets directory
+      const assetPath = path.join(__dirname, '../assets', assetName);
+      console.log('get-asset-path: assetPath =', assetPath);
+      
+      // Check if file exists
+      const fs = require('fs');
+      if (fs.existsSync(assetPath)) {
+        console.log('get-asset-path: File found at', assetPath);
+        // Return a file:// URL that can be used by the Audio constructor
+        return `file://${assetPath}`;
+      } else {
+        console.error('Asset not found:', assetPath);
+        return null;
+      }
+    } else {
+      // In production, we're packaged in an ASAR archive
+      // The app path points to the ASAR file itself, so we need to look in the unpacked directory
+      // or check if the asset is at the root of the ASAR archive
+      
+      // First, try to find the asset in the ASAR archive (assets are copied to dist/ which goes to root of ASAR)
+      const appPath = app.getAppPath();
+      let assetPath = path.join(appPath, assetName);
+      console.log('get-asset-path: Trying assetPath in ASAR root =', assetPath);
+      
+      const fs = require('fs');
+      if (fs.existsSync(assetPath)) {
+        console.log('get-asset-path: File found at', assetPath);
+        // Return a file:// URL that can be used by the Audio constructor
+        return `file://${assetPath}`;
+      }
+      
+      // If not found, try in the assets subdirectory
+      assetPath = path.join(appPath, 'assets', assetName);
+      console.log('get-asset-path: Trying assetPath in ASAR assets =', assetPath);
+      
+      if (fs.existsSync(assetPath)) {
+        console.log('get-asset-path: File found at', assetPath);
+        // Return a file:// URL that can be used by the Audio constructor
+        return `file://${assetPath}`;
+      }
+      
+      // If still not found, try in the dist/assets directory (this is where assets are copied in vite.config.ts)
+      assetPath = path.join(appPath, 'dist', 'assets', assetName);
+      console.log('get-asset-path: Trying assetPath in ASAR dist/assets =', assetPath);
+      
+      if (fs.existsSync(assetPath)) {
+        console.log('get-asset-path: File found at', assetPath);
+        // Return a file:// URL that can be used by the Audio constructor
+        return `file://${assetPath}`;
+      }
+      
+      // If still not found, try in the dist-electron/assets directory (unpacked)
+      const resourcesPath = process.resourcesPath || path.dirname(appPath);
+      assetPath = path.join(resourcesPath, 'dist-electron', 'assets', assetName);
+      console.log('get-asset-path: Trying assetPath in unpacked =', assetPath);
+      
+      if (fs.existsSync(assetPath)) {
+        console.log('get-asset-path: File found at', assetPath);
+        // Return a file:// URL that can be used by the Audio constructor
+        return `file://${assetPath}`;
+      }
+      
+      console.error('Asset not found in any location:', assetName);
+      return null;
+    }
+  } catch (error) {
+    console.error('Error getting asset path:', error);
+    return null;
+  }
+});
+
 // --- IPC Handlers for Voters CRUD ---
 ipcMain.handle('get-voters', (event, organizationId) => {
   return db.prepare('SELECT * FROM voters WHERE organization_id = ? ORDER BY created_at DESC').all(organizationId);

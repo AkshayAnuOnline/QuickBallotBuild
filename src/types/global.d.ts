@@ -16,6 +16,11 @@ declare module '*.jpg' {
 declare module '*.jpeg' {
   const content: string
   export default content
-} 
+}
+
+declare module '*.mp3' {
+  const content: string
+  export default content
+}
 
 declare module 'mermaid-graph'; 

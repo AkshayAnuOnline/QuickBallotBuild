@@ -19,27 +19,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return '1.0.0'; // fallback version
     }
   },
-  readOpenMojiData: async () => {
+  getAssetPath: async (assetName: string) => {
     try {
-      const result = await ipcRenderer.invoke('read-openmoji-data');
-      if (result.success) {
-        return result.data || [];
-      } else {
-        console.error('Error reading openmoji data:', result.error);
-        return [];
-      }
-    } catch (error) {
-      console.error('Error reading openmoji data:', error);
-      return [];
-    }
-  },
-  readOpenMojiImage: async (hexcode: string) => {
-    try {
-      const result = await ipcRenderer.invoke('read-openmoji-image', hexcode);
+      const result = await ipcRenderer.invoke('get-asset-path', assetName);
       return result;
     } catch (error) {
-      console.error('Error reading openmoji image:', error);
-      return { success: false, error: error.message };
+      console.error('Error getting asset path:', error);
+      return null;
     }
   },
   platform: process.platform
