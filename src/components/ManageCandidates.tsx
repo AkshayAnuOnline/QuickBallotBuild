@@ -988,10 +988,10 @@ const ManageCandidates: React.FC<ManageCandidatesProps> = ({ organization_id: pr
                     {newCandidate.symbol ? 'Change Emoji' : 'Pick Emoji'}
                   </button>
                   
-                  {/* Always show emoji preview if selected and no image is uploaded */}
-                  {newCandidate.symbol && !newCandidate.symbolFile && (newCandidate.symbol.endsWith('.png') || newCandidate.symbol.startsWith('/openmoji/')) ? (
+                  {/* Symbol preview */}
+                  {newCandidate.symbolFile ? (
                     <img
-                      src={newCandidate.symbol}
+                      src={newCandidate.symbolFile}
                       alt="Symbol Preview"
                       style={{
                         width: 32,
@@ -1004,19 +1004,47 @@ const ManageCandidates: React.FC<ManageCandidatesProps> = ({ organization_id: pr
                         boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
                       }}
                     />
-                  ) : newCandidate.symbol && !newCandidate.symbolFile ? (
-                    <span style={{
-                      fontSize: 32,
-                      marginLeft: 4,
-                      background: '#232427',
-                      borderRadius: 8,
-                      padding: '2px 12px',
-                      border: '1.5px solid #31334a',
-                      display: 'inline-block',
-                      minWidth: 40,
-                      textAlign: 'center',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
-                    }}>{newCandidate.symbol}</span>
+                  ) : newCandidate.symbol && (
+                      newCandidate.symbol.endsWith('.png') ||
+                      newCandidate.symbol.startsWith('/openmoji/') ||
+                      newCandidate.symbol.startsWith('data:image/') ||
+                      newCandidate.symbol.length > 100
+                    ) ? (
+                    <img
+                      src={
+                        newCandidate.symbol.startsWith('data:image/') || newCandidate.symbol.endsWith('.png') || newCandidate.symbol.startsWith('/openmoji/')
+                          ? newCandidate.symbol
+                          : `data:image/png;base64,${newCandidate.symbol}`
+                      }
+                      alt="Symbol Preview"
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 6,
+                        objectFit: 'cover',
+                        marginLeft: 8,
+                        background: '#232427',
+                        border: '1.5px solid #31334a',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                      }}
+                    />
+                  ) : newCandidate.symbol ? (
+                    <span
+                      style={{
+                        fontSize: 32,
+                        marginLeft: 4,
+                        background: '#232427',
+                        borderRadius: 8,
+                        padding: '2px 12px',
+                        border: '1.5px solid #31334a',
+                        display: 'inline-block',
+                        minWidth: 40,
+                        textAlign: 'center',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                      }}
+                    >
+                      {newCandidate.symbol}
+                    </span>
                   ) : null}
                   {newCandidate.symbol && !newCandidate.symbolFile && (
                     <button type="button" style={{ background: 'none', border: 'none', color: '#eb445a', fontWeight: 700, fontSize: 18, marginLeft: 2, cursor: 'pointer' }} onClick={() => setNewCandidate(prev => ({ ...prev, symbol: '' }))}>&times;</button>
@@ -1032,9 +1060,6 @@ const ManageCandidates: React.FC<ManageCandidatesProps> = ({ organization_id: pr
                   {/* Only show file label if not showing emoji */}
                   {(!newCandidate.symbol || newCandidate.symbolFile) && (
                     <span className="add-org-file-name" style={{ color: '#a3a6b1', fontSize: 13 }}>{newCandidate.symbolFile ? 'Symbol selected' : 'No file chosen'}</span>
-                  )}
-                  {newCandidate.symbolFile && (
-                    <img src={newCandidate.symbolFile} alt="Symbol Preview" style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'cover', marginLeft: 8 }} />
                   )}
                 </div>
                 {showEmojiPicker && (
@@ -1134,8 +1159,12 @@ const ManageCandidates: React.FC<ManageCandidatesProps> = ({ organization_id: pr
                     onChange={e => handleEditPhotoChange(e)}
                   />
                   <label htmlFor="editCandidateSymbolFile" className="add-org-file-btn" style={{ marginBottom: 0 }}>Upload Symbol</label>
-                  {editCandidate?.symbol && !editCandidate?.symbolFile && (editCandidate.symbol.endsWith('.png') || editCandidate.symbol.startsWith('/openmoji/')) ? (
-                    <img src={editCandidate.symbol} alt="Symbol Preview" style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'cover', marginLeft: 8 }} />
+                  {editCandidate?.symbol && !editCandidate?.symbolFile && (editCandidate.symbol.endsWith('.png') || editCandidate.symbol.startsWith('/openmoji/') || editCandidate.symbol.startsWith('data:image/') || editCandidate.symbol.length > 100) ? (
+                    <img src={
+                        editCandidate.symbol.startsWith('data:image/') || editCandidate.symbol.endsWith('.png') || editCandidate.symbol.startsWith('/openmoji/')
+                          ? editCandidate.symbol
+                          : `data:image/png;base64,${editCandidate.symbol}`
+                      } alt="Symbol Preview" style={{ width: 32, height: 32, borderRadius: 6, objectFit: 'cover', marginLeft: 8 }} />
                   ) : editCandidate?.symbol && !editCandidate?.symbolFile && !editCandidate?.symbol.startsWith('data:image/') ? (
                     <span style={{
                       fontSize: 32,
